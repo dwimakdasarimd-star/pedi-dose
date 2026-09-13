@@ -21,3 +21,4 @@
 .rxGrid .muted{color:#8b95a3;font-weight:400}
 .rxHint{font-size:12px;line-height:1.55;background:#f5f8fb;border:1px solid #e3e9ef;border-radius:10px;padding:10px 12px;margin:8px 0 12px}
 @media(max-width:720px){.rxGrid{grid-template-columns:1fr}}
+.checkLabel{display:flex;align-items:center;gap:8px;padding-top:24px;color:#44506a}.checkLabel input{width:16px;height:16px}.fullRow{grid-column:1/-1}.rxGrid textarea{width:100%;margin-top:6px;border:1px solid #dfe4ea;border-radius:10px;padding:10px 11px;background:#fff;color:#18202a;font:inherit;resize:vertical;line-height:1.45}

@@ -1,0 +1,1 @@
+$(sed '1,900p' /mnt/data/pedidose/pedi-dose/app/page.tsx)

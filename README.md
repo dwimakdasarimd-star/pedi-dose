@@ -3,40 +3,41 @@
 Next.js 14 + TypeScript + CSS, ready for GitHub/Vercel.
 
 ## Included
-- 50 pediatric medicines
-- Drug class
-- Multiple indications
+- 56 pediatric medicines
+- Drug class and multiple indications
 - Pediatric dose reference field
-- Frequency
-- Maximum dose field
-- Renal-status workflow
-- Automatic prescription-format text
-- Copy prescription button
-- Age and weight inputs
-- Clinical safety notice
+- Frequency, maximum dose and renal-status workflow
+- Prescription formatter based on the two uploaded prescription guides
+- Obat jadi, sirup/suspensi, tablet/kapsul, topikal, tetes, inhalasi/nebulisasi
+- Racikan pulveres with `M.f. pulv. dtd No.` structure and editable ingredient list
+- Doctor identity: name, SIP, practice address and date
+- Patient identity: name, age and weight
+- Diagnosis/indication field
+- Latin or Indonesian signa
+- Optional timing (`p.c.`, `a.c.`, `h.s.`), PRN and extra instructions
+- Per-prescription-item `(paraf)` marker
+- Copy-ready prescription text
 
-## Important
-This repository is a **starter clinical decision-support application**, not a clinically validated prescribing database.
-Every medication regimen must be reviewed against current official product labeling, national/local formularies and guidelines, pediatric references, formulation strength, age/weight restrictions, renal/hepatic function, contraindications, interactions, and indication-specific duration.
+## Prescription-writing basis
+The formatter was updated after reviewing both uploaded references. The references repeatedly use the structure `R/` → medicine/strength/form → `No.` → `S.` (signa), with patient age/weight and prescriber information shown on prescription examples. They also show separate prescription items with a paraf marker and pulveres examples using `M.f. pulv. dtd No.`. Examples include liquid directions such as `c. orig`, topical `u.e./applic`, drops `gtt`, and frequency notation such as `1 dd`, `2 dd`, `3 dd`, and `4 dd`.
 
-For renal dosing, do not infer pediatric dosing simply from adult tables. FDA materials specifically discuss the evidence gaps and the need for pediatric-specific renal dosing approaches.
+The implementation intentionally treats these as **formatting conventions from the uploaded study materials**, not as proof that any particular clinical regimen is current or appropriate.
+
+## Important clinical safety note
+This repository is a **training/decision-support application**, not a clinically validated prescribing database. The medication entries are starter references and must be independently checked against current official product labeling, national/local formularies, institutional protocols and indication-specific guidelines before clinical use.
+
+Do not infer pediatric renal dosing from adult tables. Verify age-specific dosing, formulation strength, route, indication, duration, maximum single/daily dose, renal/hepatic adjustment, contraindications and interactions.
 
 ## Run locally
+```bash
 npm install
 npm run dev
+```
+
+## Build
+```bash
+npm run build
+```
 
 ## Deploy
 Push this folder to GitHub, then import the repository into Vercel.
-
-
-## Prescription-writing module
-The app now includes a prescription formatter aligned to the uploaded FK UNS prescription skills guide:
-- patient name, age and weight
-- prescriber name/SIP and date
-- diagnosis/indication
-- drug name, dose, dosage form, route, frequency, duration and quantity
-- Latin or Indonesian signa
-- ready-made medicine and pulveres/racikan output
-- copy-ready prescription text
-
-The guide emphasizes rational prescribing, correct drug/dose/formulation/patient, and inclusion of age/weight for pediatric patients. The app is a training/decision-support tool and does not replace current official labeling or local formularies.

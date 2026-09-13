@@ -861,23 +861,95 @@ const PRESCRIPTION_FORMS = [
   { value: "sirup-suspensi", label: "Sirup / suspensi" },
   { value: "tablet-kapsul", label: "Tablet / kapsul" },
   { value: "topikal", label: "Krim / salep / topikal" },
-  { value: "tetes", label: "Tetes" },
+  { value: "tetes", label: "Tetes mata / telinga / hidung" },
   { value: "inhalasi-nebulisasi", label: "Inhalasi / nebulisasi" },
 ];
 
 const ROUTES = ["PO", "IV", "IM", "SC", "INH", "NEB", "TOP", "OPHT", "OTIC", "NASAL", "RECTAL"];
 
-function latinSigna(freq: string) {
-  const f = freq.toLowerCase();
+function latinFrequency(freq: string) {
+  const f = freq.toLowerCase().replace(/–/g, "-");
+  if (f.includes("q4-6")) return "4-6 dd";
+  if (f.includes("q6-8")) return "3-4 dd";
+  if (f.includes("q8-12")) return "2-3 dd";
+  if (f.includes("q12-24")) return "1-2 dd";
   if (f.includes("q24")) return "1 dd";
   if (f.includes("q12")) return "2 dd";
   if (f.includes("q8")) return "3 dd";
   if (f.includes("q6")) return "4 dd";
   if (f.includes("q4")) return "6 dd";
-  if (f.includes("q6–8") || f.includes("q6-8")) return "3–4 dd";
-  if (f.includes("q8–12") || f.includes("q8-12")) return "2–3 dd";
-  if (f.includes("q12–24") || f.includes("q12-24")) return "1–2 dd";
   return freq;
+}
+
+function dosageUnit(form: string) {
+  if (form === "sirup-suspensi") return "c. orig";
+  if (form === "tablet-kapsul") return "tab";
+  if (form === "topikal") return "applic";
+  if (form === "tetes") return "gtt";
+  if (form === "inhalasi-nebulisasi") return "puff";
+  if (form === "racikan-pulveres") return "pulv";
+  return "tab";
+}
+
+function latinSigna(params: {
+  frequency: string;
+  form: string;
+  route: string;
+  amount: string;
+  prn: boolean;
+  timing: string;
+  extra: string;
+}) {
+  const { frequency, form, route, amount, prn, timing, extra } = params;
+  const freq = latinFrequency(frequency);
+  const qty = amount.trim() || "1";
+  let base = "";
+
+  if (form === "topikal") {
+    base = `${freq} applic part dol`;
+  } else if (form === "tetes") {
+    const target = route === "OPHT" ? "ODS" : route === "OTIC" ? "ADS/AS/AD" : "NDS";
+    base = `${freq} gtt ${qty} ${target}`;
+  } else if (form === "inhalasi-nebulisasi") {
+    base = `${freq} puff ${qty}`;
+  } else if (form === "racikan-pulveres") {
+    base = `${freq} pulv ${qty}`;
+  } else if (form === "sirup-suspensi") {
+    base = `${freq} c. orig ${qty}`;
+  } else {
+    const unit = dosageUnit(form);
+    base = `${freq} ${unit} ${qty}`;
+  }
+
+  if (prn) base += " prn";
+  if (timing.trim()) base += ` ${timing.trim()}`;
+  if (extra.trim()) base += `, ${extra.trim()}`;
+  return base;
+}
+
+function indonesianSigna(params: {
+  frequency: string;
+  form: string;
+  route: string;
+  amount: string;
+  prn: boolean;
+  timing: string;
+  extra: string;
+}) {
+  const { frequency, form, route, amount, prn, timing, extra } = params;
+  const qty = amount.trim() || "1";
+  const routeText: Record<string, string> = {
+    PO: "per oral", IV: "intravena", IM: "intramuskular", SC: "subkutan",
+    INH: "inhalasi", NEB: "nebulisasi", TOP: "topikal", OPHT: "pada mata",
+    OTIC: "pada telinga", NASAL: "pada hidung", RECTAL: "per rektal"
+  };
+  const formText = form === "racikan-pulveres" ? `1 puyer (${qty})` : `${qty} ${form === "sirup-suspensi" ? "sendok takar" : form === "tetes" ? "tetes" : form === "topikal" ? "olesan" : form === "inhalasi-nebulisasi" ? "semprotan" : "tablet"}`;
+  let base = `${frequency} ${formText}`;
+  if (routeText[route]) base += ` ${routeText[route]}`;
+  if (prn) base += " bila perlu";
+  if (timing.trim()) base += ` ${timing.trim()}`;
+  if (extra.trim()) base += `, ${extra.trim()}`;
+  return base;
 }
 
 function makePrescription(params: {
@@ -886,6 +958,7 @@ function makePrescription(params: {
   weight: string;
   doctor: string;
   sip: string;
+  doctorAddress: string;
   date: string;
   diagnosis: string;
   drug: Drug;
@@ -898,51 +971,55 @@ function makePrescription(params: {
   concentration: string;
   signaLanguage: string;
   compounded: boolean;
+  compoundedIngredients: string;
+  dosageForm: string;
+  amountPerDose: string;
+  prn: boolean;
+  timing: string;
+  extraSigna: string;
 }) {
   const {
-    patientName, age, weight, doctor, sip, date, diagnosis, drug,
+    patientName, age, weight, doctor, sip, doctorAddress, date, diagnosis, drug,
     dosePerDose, frequency, route, form, duration, quantity, concentration,
-    signaLanguage, compounded
+    signaLanguage, compounded, compoundedIngredients, dosageForm, amountPerDose, prn, timing, extraSigna
   } = params;
 
   const dose = dosePerDose.trim() || drug.dose;
-  const qty = quantity.trim() || "sesuai kebutuhan";
+  const qty = quantity.trim() || "[jumlah]";
   const conc = concentration.trim() ? ` ${concentration.trim()} mg/5 mL` : "";
-  const signa = signaLanguage === "Latin"
-    ? `${latinSigna(frequency)} ${route === "PO" ? "po" : route.toLowerCase()}`
-    : `${frequency} melalui ${route}`;
+  const signaParams = { frequency: frequency || drug.frequency, form, route, amount: amountPerDose, prn, timing, extra: extraSigna };
+  const signa = signaLanguage === "Latin" ? latinSigna(signaParams) : indonesianSigna(signaParams);
+  const durationText = duration.trim() ? ` selama ${duration.trim()}` : "";
 
   let body = "";
   if (compounded) {
-    body = `R/ ${drug.name} ${dose}
-M.f. pulv. dtd No. ${qty}.
-S. ${signa}${duration ? ` selama ${duration}` : ""}.`;
+    const ingredients = compoundedIngredients.trim() || `${drug.name} ${dose}\nSacc. lactis q.s.`;
+    body = `R/ ${ingredients}\nM.f. pulv. dtd No. ${qty}.\nS. ${signa}${durationText}.\n(paraf)`;
   } else {
-    body = `R/ ${drug.name}${conc} ${form}
-No. ${qty}.
-S. ${signa}${duration ? ` selama ${duration}` : ""}.`;
+    const defaultDosageForm: Record<string, string> = {
+      "obat-jadi": "tab",
+      "sirup-suspensi": "syr",
+      "tablet-kapsul": "tab",
+      "topikal": "cr",
+      "tetes": "ED",
+      "inhalasi-nebulisasi": "inhaler"
+    };
+    const formText = dosageForm.trim() || defaultDosageForm[form] || "sediaan";
+    const strength = form === "sirup-suspensi" || form === "tetes" || form === "topikal" || form === "inhalasi-nebulisasi"
+      ? conc
+      : ` ${dose}`;
+    const nameLine = `R/ ${drug.name}${strength} ${formText}`;
+    body = `${nameLine}\nNo. ${qty}.\nS. ${signa}${durationText}.\n(paraf)`;
   }
 
-  return `${doctor ? doctor : "[Nama dokter]"}${sip ? `
-SIP: ${sip}` : ""}
-${date ? `
-${date}` : ""}
+  const header = [
+    doctor || "[Nama dokter]",
+    sip ? `SIP: ${sip}` : "SIP: [Nomor SIP]",
+    doctorAddress || "[Alamat praktik]",
+    date || "[Tanggal]"
+  ].join("\n");
 
-${body}
-
--------------------------------- z
-Pro: ${patientName || "[Nama pasien]"} (${age || "[usia]"}; BB ${weight || "[BB]"} kg)${diagnosis ? `
-Diagnosis: ${diagnosis}` : ""}`;
-}
-
-function round(n:number, d=1) {
-  const p = 10 ** d;
-  return Math.round(n*p)/p;
-}
-
-function ageLabel(months:number) {
-  if (months < 24) return `${months} bulan`;
-  return `${round(months/12,1)} tahun`;
+  return `${header}\n\n${body}\n\nPro: ${patientName || "[Nama pasien]"}\nUmur: ${age || "[usia]"}; BB: ${weight || "[BB]"} kg${diagnosis ? `\nDiagnosis: ${diagnosis}` : ""}`;
 }
 
 const BG_ILLUSTRATION = `
@@ -1006,15 +1083,22 @@ export default function Home() {
   const [patientName, setPatientName] = useState("");
   const [doctorName, setDoctorName] = useState("");
   const [sip, setSip] = useState("");
+  const [doctorAddress, setDoctorAddress] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
   const [rxDate, setRxDate] = useState(new Date().toISOString().slice(0, 10));
   const [rxForm, setRxForm] = useState("obat-jadi");
+  const [dosageForm, setDosageForm] = useState("tab");
   const [route, setRoute] = useState("PO");
   const [dosePerDose, setDosePerDose] = useState("");
   const [rxFrequency, setRxFrequency] = useState("");
   const [duration, setDuration] = useState("");
   const [quantity, setQuantity] = useState("");
   const [signaLanguage, setSignaLanguage] = useState("Latin");
+  const [amountPerDose, setAmountPerDose] = useState("1");
+  const [prn, setPrn] = useState(false);
+  const [timing, setTiming] = useState("");
+  const [extraSigna, setExtraSigna] = useState("");
+  const [compoundedIngredients, setCompoundedIngredients] = useState("");
 
   const drug = DRUGS.find(d => d.id === drugId)!;
   const indications = drug.indications;
@@ -1043,6 +1127,7 @@ export default function Home() {
       weight: String(result.kg),
       doctor: doctorName,
       sip,
+      doctorAddress,
       date: rxDate,
       diagnosis: diagnosis || selectedIndication,
       drug,
@@ -1055,6 +1140,12 @@ export default function Home() {
       concentration,
       signaLanguage,
       compounded,
+      compoundedIngredients,
+      dosageForm,
+      amountPerDose,
+      prn,
+      timing,
+      extraSigna,
     });
   }
 
@@ -1072,7 +1163,7 @@ export default function Home() {
           <div>
             <div className="eyebrow">CLINICAL DECISION SUPPORT</div>
             <h1>PediDose</h1>
-            <p>50-drug pediatric dosing database • Vercel-ready</p>
+            <p>56-drug pediatric dosing database • Vercel-ready</p>
           </div>
         </header>
 
@@ -1160,6 +1251,9 @@ export default function Home() {
                   <label>SIP
                     <input value={sip} onChange={e => setSip(e.target.value)} placeholder="Nomor SIP" />
                   </label>
+                  <label>Alamat praktik
+                    <input value={doctorAddress} onChange={e => setDoctorAddress(e.target.value)} placeholder="Alamat praktik dokter" />
+                  </label>
                   <label>Tanggal
                     <input type="date" value={rxDate} onChange={e => setRxDate(e.target.value)} />
                   </label>
@@ -1167,6 +1261,9 @@ export default function Home() {
                     <select value={rxForm} onChange={e => setRxForm(e.target.value)}>
                       {PRESCRIPTION_FORMS.map(x => <option key={x.value} value={x.value}>{x.label}</option>)}
                     </select>
+                  </label>
+                  <label>Bentuk singkat sediaan
+                    <input value={dosageForm} onChange={e => setDosageForm(e.target.value)} placeholder="tab / cap / syr / cr / ED" />
                   </label>
                   <label>Rute
                     <select value={route} onChange={e => setRoute(e.target.value)}>
@@ -1179,11 +1276,24 @@ export default function Home() {
                   <label>Frekuensi <span className="muted">(opsional)</span>
                     <input value={rxFrequency} onChange={e => setRxFrequency(e.target.value)} placeholder={drug.frequency} />
                   </label>
+                  <label>Jumlah unit per kali
+                    <input value={amountPerDose} onChange={e => setAmountPerDose(e.target.value)} placeholder="mis. 1 / 2" />
+                  </label>
                   <label>Durasi
                     <input value={duration} onChange={e => setDuration(e.target.value)} placeholder="mis. 5 hari" />
                   </label>
-                  <label>Jumlah
-                    <input value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="mis. No. I / No. X" />
+                  <label>Jumlah resep
+                    <input value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="mis. X / XX / No. I" />
+                  </label>
+                  <label>Waktu pemberian
+                    <input value={timing} onChange={e => setTiming(e.target.value)} placeholder="mis. p.c. / a.c. / h.s." />
+                  </label>
+                  <label>Instruksi tambahan
+                    <input value={extraSigna} onChange={e => setExtraSigna(e.target.value)} placeholder="mis. habiskan / tiap pagi" />
+                  </label>
+                  <label className="checkLabel">
+                    <input type="checkbox" checked={prn} onChange={e => setPrn(e.target.checked)} />
+                    Bila perlu (prn)
                   </label>
                   <label>Gaya signa
                     <select value={signaLanguage} onChange={e => setSignaLanguage(e.target.value)}>
@@ -1191,10 +1301,17 @@ export default function Home() {
                       <option>Bahasa Indonesia</option>
                     </select>
                   </label>
+                  {rxForm === "racikan-pulveres" && <label className="fullRow">Komponen racikan
+                    <textarea value={compoundedIngredients} onChange={e => setCompoundedIngredients(e.target.value)} placeholder={`Contoh:
+Paracetamol 100 mg
+Gliseril guaiakolat 50 mg
+CTM 1 mg
+Sacc. lactis q.s.`} rows={5} />
+                  </label>}
                 </div>
 
                 <div className="rxHint">
-                  <b>Prinsip resep anak:</b> nama obat + dosis + bentuk sediaan + signa + jumlah, serta identitas pasien dengan usia dan BB. Setiap R/ memiliki signa; jika lebih dari satu R/, masing-masing diberi signa dan paraf.
+                  <b>Prinsip resep anak dari kedua panduan:</b> cantumkan identitas dokter (termasuk SIP), tanggal, identitas pasien dengan umur/BB, diagnosis bila digunakan, lalu setiap R/ harus jelas obat + kekuatan/dosis + bentuk sediaan + jumlah + S. (signa). Pada beberapa contoh sumber, setiap R/ juga diakhiri paraf; racikan pulveres menggunakan <i>M.f. pulv. dtd No.</i> dan S. pulv.
                 </div>
 
                 <pre>{prescription()}</pre>
