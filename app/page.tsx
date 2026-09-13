@@ -945,6 +945,54 @@ function ageLabel(months:number) {
   return `${round(months/12,1)} tahun`;
 }
 
+const BG_ILLUSTRATION = `
+<svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="blobBlue" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#3157d5" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#3157d5" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="blobSoft" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#c9d8ff" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#c9d8ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <circle cx="1230" cy="110" r="420" fill="url(#blobBlue)"/>
+  <circle cx="90" cy="780" r="360" fill="url(#blobSoft)"/>
+  <circle cx="1310" cy="800" r="240" fill="url(#blobBlue)"/>
+
+  <g stroke="#3157d5" stroke-opacity="0.09" stroke-width="2" stroke-linecap="round">
+    <path d="M70 90h18M79 81v18"/>
+    <path d="M210 240h16M218 232v16"/>
+    <path d="M1360 260h18M1369 251v18"/>
+    <path d="M1120 60h14M1127 53v14"/>
+    <path d="M40 560h16M48 552v16"/>
+    <path d="M1250 620h18M1259 611v18"/>
+    <path d="M340 820h14M347 813v14"/>
+  </g>
+
+  <g stroke="#3157d5" stroke-opacity="0.13" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(70,150) rotate(-22)">
+      <rect x="0" y="0" width="92" height="40" rx="20"/>
+      <line x1="46" y1="0" x2="46" y2="40"/>
+    </g>
+
+    <g transform="translate(50,640)">
+      <path d="M20 0 L20 55 M2 0 H38 M9 55 H31 L20 88 Z"/>
+    </g>
+
+    <g transform="translate(1240,90) rotate(18)">
+      <circle cx="18" cy="18" r="18"/>
+      <circle cx="52" cy="18" r="18"/>
+      <line x1="18" y1="18" x2="52" y2="18"/>
+    </g>
+
+    <path d="M980 800 h60 l18 -42 l28 84 l22 -110 l18 68 h96"/>
+  </g>
+</svg>
+`.trim();
+
 export default function Home() {
   const [weight, setWeight] = useState("18");
   const [ageMonths, setAgeMonths] = useState("60");
@@ -1017,6 +1065,7 @@ export default function Home() {
 
   return (
     <main className="page">
+      <div className="bgArt" aria-hidden="true" dangerouslySetInnerHTML={{ __html: BG_ILLUSTRATION }} />
       <div className="shell">
         <header className="header">
           <div className="brandMark">PD</div>
