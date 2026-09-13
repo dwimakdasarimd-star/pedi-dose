@@ -1033,7 +1033,7 @@ function makePrescription(params: {
 }
 
 
-type CalculatorKey = "dosing" | "infusion-rate" | "dose-rate" | "concentration" | "fluid-bolus" | "maintenance" | "skdi-4a";
+type CalculatorKey = "dosing" | "infusion-rate" | "dose-rate" | "concentration" | "fluid-bolus" | "maintenance" | "gcs" | "skdi-4a";
 
 function num(value: string) {
   const n = Number(value);
@@ -1071,7 +1071,8 @@ function CalculatorNav({ active, onChange }: { active: CalculatorKey; onChange: 
     { key: "concentration", number: "04", title: "Infusion concentration", desc: "Amount, volume & strength" },
     { key: "fluid-bolus", number: "05", title: "Fluid volume", desc: "mL/kg & total volume" },
     { key: "maintenance", number: "06", title: "Maintenance fluids", desc: "4–2–1 / 100–50–20" },
-    { key: "skdi-4a", number: "07", title: "SKDI 4A diseases", desc: "Diagnosis → workup → management" },
+    { key: "gcs", number: "07", title: "GCS score", desc: "Eye, verbal, motor & interpretasi" },
+    { key: "skdi-4a", number: "08", title: "SKDI 4A diseases", desc: "Diagnosis → workup → management" },
   ];
   return <nav className="calcNav" aria-label="Medical calculators">
     {items.map(item => <button key={item.key} className={`calcNavItem ${active === item.key ? "active" : ""}`} onClick={() => onChange(item.key)}>
@@ -1159,6 +1160,72 @@ function FluidBolusCalculator() {
 function MaintenanceCalculator() {
   const [weight, setWeight] = useState("18"); const kg = num(weight); const hourly = kg <= 10 ? kg * 4 : kg <= 20 ? 40 + (kg - 10) * 2 : 60 + (kg - 20); const daily = kg <= 10 ? kg * 100 : kg <= 20 ? 1000 + (kg - 10) * 50 : 1500 + (kg - 20) * 20;
   return <CalculatorLayout title="Maintenance fluid calculator" subtitle="Pediatric maintenance arithmetic using the 4–2–1 hourly rule and 100–50–20 daily rule."><div className="calcGrid"><div className="calcInputs"><InputUnit label="Patient weight" value={weight} onChange={setWeight} unit="kg" /><div className="rxHint"><b>Hourly rule:</b> 4 mL/kg/hr for first 10 kg, 2 mL/kg/hr for next 10 kg, then 1 mL/kg/hr thereafter.</div><div className="rxHint"><b>Daily rule:</b> 100 mL/kg/day for first 10 kg, 50 mL/kg/day for next 10 kg, then 20 mL/kg/day thereafter.</div></div><div className="calcResult"><div className="resultKicker">MAINTENANCE ESTIMATE</div><div className="resultHero">{formatNumber(hourly, 2)} <small>mL/hr</small></div><div className="metricList"><ResultMetric label="Daily equivalent" value={formatNumber(daily)} unit="mL/day" /><ResultMetric label="Weight" value={formatNumber(kg)} unit="kg" /><ResultMetric label="Hourly × 24" value={formatNumber(hourly * 24)} unit="mL/day" /></div><Formula text="4–2–1 hourly rule and 100–50–20 daily rule are shown as calculation methods, not fluid prescribing recommendations." /></div></div></CalculatorLayout>;
+}
+
+const GCS_EYE = [
+  ["4", "4 — Spontan (membuka mata sendiri)"],
+  ["3", "3 — Terhadap suara/perintah"],
+  ["2", "2 — Terhadap nyeri"],
+  ["1", "1 — Tidak ada respons"],
+];
+const GCS_VERBAL_STANDARD = [
+  ["5", "5 — Orientasi baik"],
+  ["4", "4 — Bingung / disorientasi"],
+  ["3", "3 — Kata-kata tidak sesuai"],
+  ["2", "2 — Suara tidak dapat dimengerti (erangan)"],
+  ["1", "1 — Tidak ada respons"],
+];
+const GCS_VERBAL_PEDIATRIC = [
+  ["5", "5 — Mengoceh/tersenyum sesuai (coos, babbles)"],
+  ["4", "4 — Menangis tapi dapat ditenangkan (irritable cry)"],
+  ["3", "3 — Menangis terhadap nyeri"],
+  ["2", "2 — Merintih terhadap nyeri (moans)"],
+  ["1", "1 — Tidak ada respons"],
+];
+const GCS_MOTOR = [
+  ["6", "6 — Mengikuti perintah / gerakan spontan normal"],
+  ["5", "5 — Melokalisasi nyeri"],
+  ["4", "4 — Menarik diri dari nyeri (withdraws)"],
+  ["3", "3 — Fleksi abnormal terhadap nyeri (dekortikasi)"],
+  ["2", "2 — Ekstensi abnormal terhadap nyeri (deserebrasi)"],
+  ["1", "1 — Tidak ada respons"],
+];
+
+function GcsCalculator() {
+  const [ageGroup, setAgeGroup] = useState<"standard" | "pediatric">("standard");
+  const [eye, setEye] = useState("4");
+  const [verbal, setVerbal] = useState("5");
+  const [motor, setMotor] = useState("6");
+  const e = num(eye), v = num(verbal), m = num(motor);
+  const total = e + v + m;
+  const severity = total >= 13 ? "Cedera/kesadaran ringan" : total >= 9 ? "Sedang" : "Berat (koma)";
+  const severityNote = total >= 13
+    ? "GCS 13–15"
+    : total >= 9
+      ? "GCS 9–12"
+      : "GCS 3–8 — pertimbangkan proteksi jalan napas & evaluasi kegawatan segera";
+  return <CalculatorLayout title="Glasgow Coma Scale (GCS)" subtitle="Skor kesadaran dari respons mata, verbal dan motorik. Gunakan skala verbal pediatrik untuk anak yang belum bisa berbicara sesuai usia (umumnya <2 tahun).">
+    <div className="calcGrid">
+      <div className="calcInputs">
+        <SelectField label="Skala verbal" value={ageGroup} onChange={val => setAgeGroup(val as "standard" | "pediatric")} options={[["standard", "Standar (anak lebih besar/dewasa)"], ["pediatric", "Pediatrik (bayi/anak <2 tahun)"]]} />
+        <SelectField label="Respons membuka mata (E)" value={eye} onChange={setEye} options={GCS_EYE} />
+        <SelectField label="Respons verbal (V)" value={verbal} onChange={setVerbal} options={ageGroup === "pediatric" ? GCS_VERBAL_PEDIATRIC : GCS_VERBAL_STANDARD} />
+        <SelectField label="Respons motorik (M)" value={motor} onChange={setMotor} options={GCS_MOTOR} />
+        <div className="rxHint">Jika verbal tidak dapat dinilai (mis. terintubasi), catat sebagai "VT" dan jangan jumlahkan skor verbal numerik — laporkan E dan M saja beserta keterangan.</div>
+      </div>
+      <div className="calcResult">
+        <div className="resultKicker">TOTAL GCS</div>
+        <div className="resultHero">{total} <small>/ 15</small></div>
+        <div className="metricList">
+          <ResultMetric label="Eye (E)" value={String(e)} unit="/4" />
+          <ResultMetric label="Verbal (V)" value={String(v)} unit="/5" />
+          <ResultMetric label="Motor (M)" value={String(m)} unit="/6" />
+        </div>
+        <div className="metricList"><ResultMetric label="Interpretasi" value={severity} /></div>
+        <Formula text={`GCS = E + V + M. ${severityNote}.`} />
+      </div>
+    </div>
+  </CalculatorLayout>;
 }
 
 function InputUnit({ label, value, onChange, unit, placeholder }: { label: string; value: string; onChange: (v: string) => void; unit: string; placeholder?: string }) { return <label>{label}<div className="inputUnit"><input inputMode="decimal" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} /><b>{unit}</b></div></label>; }
@@ -1529,6 +1596,7 @@ Sacc. lactis q.s.`} rows={5} />
         {activeCalculator === "concentration" && <section className="card calculatorCard"><ConcentrationCalculator /></section>}
         {activeCalculator === "fluid-bolus" && <section className="card calculatorCard"><FluidBolusCalculator /></section>}
         {activeCalculator === "maintenance" && <section className="card calculatorCard"><MaintenanceCalculator /></section>}
+        {activeCalculator === "gcs" && <section className="card calculatorCard"><GcsCalculator /></section>}
         {activeCalculator === "skdi-4a" && <Skdi4aDatabase />}
 
         <footer>
