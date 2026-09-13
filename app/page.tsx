@@ -1045,6 +1045,24 @@ function formatNumber(value: number, digits = 2) {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: digits }).format(value);
 }
 
+function ClinicalReferenceDashboard({ onOpen }: { onOpen: () => void }) {
+  const systems = new Set(SKDI_4A_DISEASES.map(d => d.system));
+  const ready = SKDI_4A_DISEASES.filter(d => d.contentStatus && d.contentStatus !== "Framework").length;
+  return <section className="card clinicalReferenceHero">
+    <div className="clinicalReferenceCopy">
+      <div className="cardTitle"><span>07</span> CLINICAL REFERENCE</div>
+      <h3>Database 144 penyakit SKDI 4A</h3>
+      <p>Clinical reference terintegrasi untuk membuka diagnosis, pemeriksaan yang diindikasikan, diagnosis banding, algoritme tatalaksana, follow-up, red flags, dan guideline setiap penyakit.</p>
+      <button className="primaryCta" onClick={onOpen}>Buka database 144 penyakit <span>→</span></button>
+    </div>
+    <div className="clinicalReferenceStats">
+      <div><strong>{SKDI_4A_DISEASES.length}</strong><span>penyakit</span></div>
+      <div><strong>{systems.size}</strong><span>sistem</span></div>
+      <div><strong>{ready}</strong><span>clinical entries</span></div>
+    </div>
+  </section>;
+}
+
 function CalculatorNav({ active, onChange }: { active: CalculatorKey; onChange: (key: CalculatorKey) => void }) {
   const items: { key: CalculatorKey; number: string; title: string; desc: string }[] = [
     { key: "dosing", number: "01", title: "Pediatric dosing", desc: "BB, usia, obat & resep" },
@@ -1338,7 +1356,7 @@ export default function Home() {
           <div>
             <div className="eyebrow">CLINICAL DECISION SUPPORT</div>
             <h1>PediDose</h1>
-            <p>56-drug pediatric dosing database • Vercel-ready</p>
+            <p>56-drug pediatric dosing • 144-disease clinical reference • Vercel-ready</p>
           </div>
         </header>
 
@@ -1350,6 +1368,8 @@ export default function Home() {
           </div>
           <div className="heroIcon">∑</div>
         </section>
+
+        <ClinicalReferenceDashboard onOpen={() => setActiveCalculator("skdi-4a")} />
 
         <CalculatorNav active={activeCalculator} onChange={setActiveCalculator} />
 
