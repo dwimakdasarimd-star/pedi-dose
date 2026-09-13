@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { SKDI_4A_DISEASES } from "./skdi4a-data";
 
 type Drug = {
   id: string;
@@ -1032,7 +1033,7 @@ function makePrescription(params: {
 }
 
 
-type CalculatorKey = "dosing" | "infusion-rate" | "dose-rate" | "concentration" | "fluid-bolus" | "maintenance";
+type CalculatorKey = "dosing" | "infusion-rate" | "dose-rate" | "concentration" | "fluid-bolus" | "maintenance" | "skdi-4a";
 
 function num(value: string) {
   const n = Number(value);
@@ -1052,6 +1053,7 @@ function CalculatorNav({ active, onChange }: { active: CalculatorKey; onChange: 
     { key: "concentration", number: "04", title: "Infusion concentration", desc: "Amount, volume & strength" },
     { key: "fluid-bolus", number: "05", title: "Fluid volume", desc: "mL/kg & total volume" },
     { key: "maintenance", number: "06", title: "Maintenance fluids", desc: "4–2–1 / 100–50–20" },
+    { key: "skdi-4a", number: "07", title: "SKDI 4A diseases", desc: "Diagnosis → workup → management" },
   ];
   return <nav className="calcNav" aria-label="Medical calculators">
     {items.map(item => <button key={item.key} className={`calcNavItem ${active === item.key ? "active" : ""}`} onClick={() => onChange(item.key)}>
@@ -1145,6 +1147,54 @@ function InputUnit({ label, value, onChange, unit, placeholder }: { label: strin
 function SelectField({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[][] }) { return <label>{label}<select value={value} onChange={e => onChange(e.target.value)}>{options.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label>; }
 function Formula({ text }: { text: string }) { return <div className="formula"><b>Formula</b><div>{text}</div></div>; }
 function CalculatorLayout({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) { return <><div className="calcHeading"><div><div className="cardTitle"><span>CALCULATOR</span></div><h3>{title}</h3><p>{subtitle}</p></div><div className="calcBadge">CHECK UNITS<br/>BEFORE USE</div></div>{children}<div className="calcSafety"><b>Clinical safety:</b> This calculator performs unit conversion and arithmetic. It does not select a drug, indication, dose, concentration, target, or treatment protocol. Verify inputs, preparation details, pump settings, institutional protocols, and current references before clinical use.</div></>; }
+
+
+function Skdi4aDatabase() {
+  const [query, setQuery] = useState("");
+  const [system, setSystem] = useState("Semua");
+  const [selectedId, setSelectedId] = useState(SKDI_4A_DISEASES[0]?.id ?? "");
+  const systems = ["Semua", ...Array.from(new Set(SKDI_4A_DISEASES.map(d => d.system)))];
+  const filtered = SKDI_4A_DISEASES.filter(d => {
+    const q = query.trim().toLowerCase();
+    const matchesSystem = system === "Semua" || d.system === system;
+    const haystack = `${d.name} ${d.system} ${d.keywords.join(" ")}`.toLowerCase();
+    return matchesSystem && (!q || haystack.includes(q));
+  });
+  const selected = SKDI_4A_DISEASES.find(d => d.id === selectedId) ?? filtered[0] ?? SKDI_4A_DISEASES[0];
+
+  return <section className="card skdiCard">
+    <div className="calcHeading">
+      <div><div className="cardTitle"><span>07</span> SKDI 4A DATABASE</div><h3>Penyakit SKDI tingkat kompetensi 4A</h3><p>Database terstruktur untuk belajar dan clinical decision support: diagnosis, pemeriksaan penunjang, diagnosis banding, tatalaksana awal/mandiri, edukasi, follow-up, dan kriteria rujuk.</p></div>
+      <div className="calcBadge">SKDI 2012<br/>4A • 144 ITEMS</div>
+    </div>
+    <div className="skdiToolbar">
+      <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Cari diagnosis, sistem, atau keyword…" aria-label="Cari penyakit SKDI 4A" />
+      <select value={system} onChange={e => setSystem(e.target.value)} aria-label="Filter sistem">
+        {systems.map(s => <option key={s}>{s}</option>)}
+      </select>
+    </div>
+    <div className="skdiLayout">
+      <div className="skdiList" role="listbox" aria-label="Daftar penyakit SKDI 4A">
+        <div className="skdiCount">Menampilkan {filtered.length} dari {SKDI_4A_DISEASES.length} diagnosis</div>
+        {filtered.map(d => <button key={d.id} className={`skdiItem ${selected?.id === d.id ? "active" : ""}`} onClick={() => setSelectedId(d.id)}>
+          <span className="skdiNo">{d.number}</span><span><b>{d.name}</b><small>{d.system}</small></span>
+        </button>)}
+      </div>
+      {selected && <article className="skdiDetail">
+        <div className="skdiDetailTop"><div><span className="skdiTag">4A</span><h4>{selected.name}</h4><p>{selected.system}</p></div><span className="skdiStatus">{selected.contentStatus}</span></div>
+        <div className="skdiSections">
+          <section><h5>1. Diagnosis</h5><p>{selected.diagnosis}</p></section>
+          <section><h5>2. Pemeriksaan penunjang</h5><p>{selected.workup}</p></section>
+          <section><h5>3. Diagnosis banding</h5><p>{selected.differential}</p></section>
+          <section><h5>4. Tatalaksana</h5><p>{selected.management}</p></section>
+          <section><h5>5. Edukasi & follow-up</h5><p>{selected.followUp}</p></section>
+          <section className="skdiReferral"><h5>6. Rujuk / red flags</h5><p>{selected.referral}</p></section>
+        </div>
+        <div className="skdiSource"><b>Guideline:</b> {selected.sources.map(s=><a key={s.name} href={s.url} target="_blank" rel="noreferrer" style={{marginRight:10}}>{s.name}</a>)}<br/><br/><b>Sumber kompetensi:</b> Konsil Kedokteran Indonesia, Standar Kompetensi Dokter Indonesia — Daftar Penyakit. <b>Catatan:</b> ringkasan klinis aplikasi harus diverifikasi terhadap pedoman nasional/terbaru, formularium, kondisi pasien, dan kewenangan fasilitas sebelum digunakan untuk keputusan klinis.</div>
+      </article>}
+    </div>
+  </section>;
+}
 
 const BG_ILLUSTRATION = `
 <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
@@ -1459,6 +1509,7 @@ Sacc. lactis q.s.`} rows={5} />
         {activeCalculator === "concentration" && <section className="card calculatorCard"><ConcentrationCalculator /></section>}
         {activeCalculator === "fluid-bolus" && <section className="card calculatorCard"><FluidBolusCalculator /></section>}
         {activeCalculator === "maintenance" && <section className="card calculatorCard"><MaintenanceCalculator /></section>}
+        {activeCalculator === "skdi-4a" && <Skdi4aDatabase />}
 
         <footer>
           <strong>⚠ Clinical safety notice</strong>
