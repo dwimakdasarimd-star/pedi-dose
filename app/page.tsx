@@ -881,6 +881,15 @@ function latinFrequency(freq: string) {
   return freq;
 }
 
+function ageLabel(months: number) {
+  const m = Math.max(0, Math.round(months));
+  const years = Math.floor(m / 12);
+  const remMonths = m % 12;
+  if (years <= 0) return `${remMonths} bulan`;
+  if (remMonths === 0) return `${years} tahun`;
+  return `${years} tahun ${remMonths} bulan`;
+}
+
 function dosageUnit(form: string) {
   if (form === "sirup-suspensi") return "c. orig";
   if (form === "tablet-kapsul") return "tab";
