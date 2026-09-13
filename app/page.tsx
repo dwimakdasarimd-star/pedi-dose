@@ -5,124 +5,899 @@ import { useMemo, useState } from "react";
 type Drug = {
   id: string;
   name: string;
-  indication: string;
-  doseMgKg: number;
-  unit: "dose";
+  class: string;
+  indications: string[];
+  dose: string;
   frequency: string;
-  maxMgKgDay?: number;
-  maxMgDose?: number;
-  concentration?: number;
-  concentrationLabel?: string;
-  minAgeMonths?: number;
-  maxAgeMonths?: number;
-  note?: string;
+  maxDose: string;
+  renal: string;
+  note: string;
+  sourceStatus: string;
 };
 
 const DRUGS: Drug[] = [
   {
-    id: "paracetamol",
-    name: "Paracetamol",
-    indication: "Demam / nyeri",
-    doseMgKg: 15,
-    unit: "dose",
-    frequency: "setiap 4–6 jam bila perlu",
-    maxMgKgDay: 60,
-    concentration: 160,
-    concentrationLabel: "160 mg / 5 mL",
-    note: "Contoh regimen umum. Verifikasi formulasi dan batas dosis sesuai referensi lokal.",
+    "id": "d01",
+    "name": "paracetamol",
+    "class": "Analgesik/antipiretik",
+    "indications": [
+      "Demam",
+      "nyeri"
+    ],
+    "dose": "10–15 mg/kg/dosis",
+    "frequency": "q4–6h PRN",
+    "maxDose": "60 mg/kg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Hindari total dosis berlebih; pertimbangkan fungsi hati.",
+    "sourceStatus": "Needs clinical validation"
   },
   {
-    id: "ibuprofen",
-    name: "Ibuprofen",
-    indication: "Demam / nyeri",
-    doseMgKg: 10,
-    unit: "dose",
-    frequency: "setiap 6–8 jam bila perlu",
-    maxMgKgDay: 40,
-    concentration: 100,
-    concentrationLabel: "100 mg / 5 mL",
-    minAgeMonths: 6,
-    note: "Hindari pada dehidrasi berat dan kondisi klinis yang menjadi kontraindikasi NSAID.",
+    "id": "d02",
+    "name": "ibuprofen",
+    "class": "NSAID",
+    "indications": [
+      "Demam",
+      "nyeri",
+      "inflamasi"
+    ],
+    "dose": "5–10 mg/kg/dosis",
+    "frequency": "q6–8h PRN",
+    "maxDose": "40 mg/kg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "≥6 bulan; hindari dehidrasi berat/risiko ginjal.",
+    "sourceStatus": "Needs clinical validation"
   },
   {
-    id: "amoxicillin",
-    name: "Amoxicillin",
-    indication: "Antibiotik — pilih sesuai indikasi",
-    doseMgKg: 25,
-    unit: "dose",
-    frequency: "setiap 8 jam",
-    maxMgKgDay: 90,
-    concentration: 250,
-    concentrationLabel: "250 mg / 5 mL",
-    note: "Regimen sangat bergantung pada diagnosis. Jangan gunakan kalkulator sebagai pengganti pemilihan antibiotik.",
+    "id": "d03",
+    "name": "naproxen",
+    "class": "NSAID",
+    "indications": [
+      "Nyeri/inflamasi"
+    ],
+    "dose": "5–7 mg/kg/dosis",
+    "frequency": "q12h",
+    "maxDose": "1000 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Gunakan sesuai usia/indikasi; perhatian pada GI dan ginjal.",
+    "sourceStatus": "Needs clinical validation"
   },
   {
-    id: "azithromycin",
-    name: "Azithromycin",
-    indication: "Antibiotik — pilih sesuai indikasi",
-    doseMgKg: 10,
-    unit: "dose",
-    frequency: "1× sehari",
-    maxMgKgDay: 10,
-    concentration: 200,
-    concentrationLabel: "200 mg / 5 mL",
-    note: "Regimen berbeda menurut diagnosis dan hari terapi.",
+    "id": "d04",
+    "name": "amoxicillin",
+    "class": "Antibiotik",
+    "indications": [
+      "Otitis media",
+      "sinusitis",
+      "faringitis",
+      "infeksi lain sesuai guideline"
+    ],
+    "dose": "25–45 mg/kg/dosis",
+    "frequency": "q12h",
+    "maxDose": "90 mg/kg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Dosis dan durasi harus dipilih berdasarkan indikasi.",
+    "sourceStatus": "Needs clinical validation"
   },
   {
-    id: "cefixime",
-    name: "Cefixime",
-    indication: "Antibiotik — pilih sesuai indikasi",
-    doseMgKg: 4,
-    unit: "dose",
-    frequency: "setiap 12 jam",
-    maxMgKgDay: 8,
-    concentration: 100,
-    concentrationLabel: "100 mg / 5 mL",
-    note: "Verifikasi indikasi, fungsi ginjal, dan dosis maksimum pada referensi resmi.",
+    "id": "d05",
+    "name": "amoxicillin-clavulanate",
+    "class": "Antibiotik",
+    "indications": [
+      "Otitis media",
+      "sinusitis",
+      "infeksi odontogenik"
+    ],
+    "dose": "25–45 mg/kg/dosis komponen amoksisilin",
+    "frequency": "q12h",
+    "maxDose": "90 mg/kg/hari komponen amoksisilin",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Gunakan formulasi dengan rasio clavulanate sesuai indikasi.",
+    "sourceStatus": "Needs clinical validation"
   },
+  {
+    "id": "d06",
+    "name": "penicillin V",
+    "class": "Antibiotik",
+    "indications": [
+      "Faringitis streptokokus"
+    ],
+    "dose": "25–50 mg/kg/hari",
+    "frequency": "dibagi 2–3 dosis",
+    "maxDose": "1000 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Durasi sesuai guideline.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d07",
+    "name": "benzathine penicillin G",
+    "class": "Antibiotik",
+    "indications": [
+      "Faringitis streptokokus",
+      "profilaksis demam rematik"
+    ],
+    "dose": "600,000–1,200,000 unit/dosis",
+    "frequency": "single dose sesuai BB/indikasi",
+    "maxDose": "1,200,000 unit/dosis",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "IM; regimen sangat bergantung pada indikasi.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d08",
+    "name": "cephalexin",
+    "class": "Sefalosporin",
+    "indications": [
+      "Kulit/jaringan lunak",
+      "UTI",
+      "faringitis"
+    ],
+    "dose": "25–50 mg/kg/hari",
+    "frequency": "dibagi 2–4 dosis",
+    "maxDose": "100 mg/kg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Renal adjustment penting pada gangguan ginjal berat.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d09",
+    "name": "cefadroxil",
+    "class": "Sefalosporin",
+    "indications": [
+      "Kulit",
+      "UTI",
+      "faringitis"
+    ],
+    "dose": "30 mg/kg/hari",
+    "frequency": "q12h",
+    "maxDose": "2 g/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Perhatikan fungsi ginjal.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d10",
+    "name": "cefixime",
+    "class": "Sefalosporin",
+    "indications": [
+      "UTI",
+      "otitis",
+      "infeksi tertentu"
+    ],
+    "dose": "8 mg/kg/hari",
+    "frequency": "q12–24h",
+    "maxDose": "400 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Sesuaikan pada gangguan ginjal berat.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d11",
+    "name": "cefpodoxime",
+    "class": "Sefalosporin",
+    "indications": [
+      "Otitis",
+      "sinusitis",
+      "faringitis"
+    ],
+    "dose": "10 mg/kg/hari",
+    "frequency": "q12h",
+    "maxDose": "400 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Interval diperpanjang pada gangguan ginjal berat.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d12",
+    "name": "cefuroxime",
+    "class": "Sefalosporin",
+    "indications": [
+      "Otitis",
+      "sinusitis",
+      "infeksi bakteri tertentu"
+    ],
+    "dose": "20–30 mg/kg/hari",
+    "frequency": "dibagi q12h",
+    "maxDose": "1000 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Formulasi oral/parenteral tidak interchangeable.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d13",
+    "name": "cefdinir",
+    "class": "Sefalosporin",
+    "indications": [
+      "Otitis",
+      "faringitis",
+      "infeksi tertentu"
+    ],
+    "dose": "14 mg/kg/hari",
+    "frequency": "q12h atau q24h",
+    "maxDose": "600 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Sesuaikan pada gangguan ginjal berat.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d14",
+    "name": "ceftriaxone",
+    "class": "Sefalosporin",
+    "indications": [
+      "Infeksi berat",
+      "meningitis",
+      "sepsis"
+    ],
+    "dose": "50–100 mg/kg/dosis",
+    "frequency": "q12–24h",
+    "maxDose": "4000 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Meningitis memerlukan regimen khusus; neonatus perlu perhatian khusus.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d15",
+    "name": "cefotaxime",
+    "class": "Sefalosporin",
+    "indications": [
+      "Sepsis",
+      "meningitis",
+      "infeksi berat"
+    ],
+    "dose": "50 mg/kg/dosis",
+    "frequency": "q6–8h",
+    "maxDose": "400 mg/kg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Interval/dosis menurut usia dan indikasi.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d16",
+    "name": "ceftazidime",
+    "class": "Sefalosporin",
+    "indications": [
+      "Infeksi Gram-negatif berat",
+      "Pseudomonas"
+    ],
+    "dose": "50 mg/kg/dosis",
+    "frequency": "q8h",
+    "maxDose": "6000 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Renal adjustment penting.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d17",
+    "name": "cefepime",
+    "class": "Sefalosporin",
+    "indications": [
+      "Infeksi Gram-negatif berat",
+      "febrile neutropenia"
+    ],
+    "dose": "50 mg/kg/dosis",
+    "frequency": "q8–12h",
+    "maxDose": "6000 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Renal adjustment penting; neurotoksisitas pada akumulasi.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d18",
+    "name": "meropenem",
+    "class": "Karbapenem",
+    "indications": [
+      "Infeksi berat",
+      "meningitis"
+    ],
+    "dose": "20–40 mg/kg/dosis",
+    "frequency": "q8h",
+    "maxDose": "120 mg/kg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Renal adjustment; regimen meningitis berbeda.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d19",
+    "name": "ertapenem",
+    "class": "Karbapenem",
+    "indications": [
+      "Infeksi bakteri tertentu"
+    ],
+    "dose": "15 mg/kg/dosis",
+    "frequency": "q12h",
+    "maxDose": "1000 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Tidak mencakup Pseudomonas.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d20",
+    "name": "azithromycin",
+    "class": "Makrolid",
+    "indications": [
+      "Pneumonia atipikal",
+      "pertusis",
+      "infeksi tertentu"
+    ],
+    "dose": "10 mg/kg/dosis",
+    "frequency": "q24h",
+    "maxDose": "500 mg/dosis",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Regimen hari terapi bergantung indikasi.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d21",
+    "name": "clarithromycin",
+    "class": "Makrolid",
+    "indications": [
+      "Pneumonia atipikal",
+      "pertusis",
+      "H. pylori"
+    ],
+    "dose": "7.5 mg/kg/dosis",
+    "frequency": "q12h",
+    "maxDose": "1000 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Renal adjustment pada gangguan ginjal berat; interaksi obat.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d22",
+    "name": "erythromycin",
+    "class": "Makrolid",
+    "indications": [
+      "Pertusis",
+      "infeksi tertentu"
+    ],
+    "dose": "10–15 mg/kg/dosis",
+    "frequency": "q6h",
+    "maxDose": "4000 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Banyak interaksi obat.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d23",
+    "name": "clindamycin",
+    "class": "Lincosamide",
+    "indications": [
+      "Infeksi kulit",
+      "anaerob",
+      "tulang/sendi"
+    ],
+    "dose": "10 mg/kg/dosis",
+    "frequency": "q6–8h",
+    "maxDose": "1800 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Monitor diare/C. difficile.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d24",
+    "name": "metronidazole",
+    "class": "Antimikroba",
+    "indications": [
+      "Anaerob",
+      "protozoa"
+    ],
+    "dose": "7.5 mg/kg/dosis",
+    "frequency": "q6–8h",
+    "maxDose": "2000 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Regimen bergantung indikasi.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d25",
+    "name": "trimethoprim-sulfamethoxazole",
+    "class": "Antibiotik",
+    "indications": [
+      "UTI",
+      "infeksi tertentu",
+      "Pneumocystis"
+    ],
+    "dose": "4–5 mg/kg/dosis komponen TMP",
+    "frequency": "q12h",
+    "maxDose": "20 mg/kg/hari TMP",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Hindari pada kondisi/usia tertentu; renal adjustment.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d26",
+    "name": "nitrofurantoin",
+    "class": "Antibiotik",
+    "indications": [
+      "UTI bawah"
+    ],
+    "dose": "1.25–1.75 mg/kg/dosis",
+    "frequency": "q6h",
+    "maxDose": "7 mg/kg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Bukan untuk pielonefritis; hindari pada fungsi ginjal sangat rendah.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d27",
+    "name": "gentamicin",
+    "class": "Aminoglikosida",
+    "indications": [
+      "Sepsis/infeksi Gram-negatif"
+    ],
+    "dose": "7.5 mg/kg/hari*",
+    "frequency": "interval diperpanjang sesuai usia/renal",
+    "maxDose": "berbasis TDM",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Wajib therapeutic drug monitoring dan renal adjustment.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d28",
+    "name": "amikacin",
+    "class": "Aminoglikosida",
+    "indications": [
+      "Infeksi Gram-negatif berat"
+    ],
+    "dose": "15 mg/kg/dosis*",
+    "frequency": "interval sesuai usia/renal",
+    "maxDose": "berbasis TDM",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Wajib TDM; renal adjustment.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d29",
+    "name": "vancomycin",
+    "class": "Glikopeptida",
+    "indications": [
+      "MRSA/infeksi Gram-positif berat"
+    ],
+    "dose": "15 mg/kg/dosis*",
+    "frequency": "q6–8h awal*",
+    "maxDose": "berbasis AUC/TDM",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Wajib TDM dan penyesuaian fungsi ginjal.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d30",
+    "name": "flucloxacillin",
+    "class": "Penisilin antistafilokokus",
+    "indications": [
+      "Infeksi kulit",
+      "osteomielitis"
+    ],
+    "dose": "25–50 mg/kg/dosis",
+    "frequency": "q6h",
+    "maxDose": "4000 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Sesuaikan regimen dengan berat infeksi.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d31",
+    "name": "cloxacillin",
+    "class": "Penisilin antistafilokokus",
+    "indications": [
+      "Infeksi kulit/jaringan lunak"
+    ],
+    "dose": "25–50 mg/kg/dosis",
+    "frequency": "q6h",
+    "maxDose": "4000 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Gunakan sesuai formularium lokal.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d32",
+    "name": "acyclovir",
+    "class": "Antivirus",
+    "indications": [
+      "HSV",
+      "varicella"
+    ],
+    "dose": "20 mg/kg/dosis",
+    "frequency": "q8h",
+    "maxDose": "60 mg/kg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "IV regimen berbeda; renal adjustment dan hidrasi penting.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d33",
+    "name": "oseltamivir",
+    "class": "Antivirus",
+    "indications": [
+      "Influenza"
+    ],
+    "dose": "3 mg/kg/dosis*",
+    "frequency": "q12h",
+    "maxDose": "150 mg/hari*",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Dosis terapi/profilaksis berbeda; renal adjustment.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d34",
+    "name": "fluconazole",
+    "class": "Antijamur",
+    "indications": [
+      "Kandidiasis"
+    ],
+    "dose": "6–12 mg/kg/hari",
+    "frequency": "q24h",
+    "maxDose": "600 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Maintenance perlu renal adjustment.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d35",
+    "name": "nystatin",
+    "class": "Antijamur",
+    "indications": [
+      "Kandidiasis oral"
+    ],
+    "dose": "100,000 unit/dosis",
+    "frequency": "q6h",
+    "maxDose": "400,000 unit/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Topikal/oral lokal; tidak bermakna diekskresikan ginjal.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d36",
+    "name": "ondansetron",
+    "class": "Antiemetik",
+    "indications": [
+      "Mual/muntah"
+    ],
+    "dose": "0.15 mg/kg/dosis",
+    "frequency": "q8h PRN",
+    "maxDose": "8 mg/dosis",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Perhatikan QT dan konteks klinis.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d37",
+    "name": "domperidone",
+    "class": "Prokinetik",
+    "indications": [
+      "Indikasi terbatas sesuai kebijakan lokal"
+    ],
+    "dose": "0.25 mg/kg/dosis",
+    "frequency": "q8h",
+    "maxDose": "30 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Penggunaan pediatrik dan keamanan QT harus mengikuti regulasi lokal.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d38",
+    "name": "salbutamol",
+    "class": "Bronkodilator",
+    "indications": [
+      "Bronkospasme"
+    ],
+    "dose": "0.1–0.15 mg/kg/dosis nebulisasi",
+    "frequency": "q4–6h PRN",
+    "maxDose": "5 mg/dosis",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Rute dan dosis bergantung usia/alat.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d39",
+    "name": "budesonide",
+    "class": "Kortikosteroid inhalasi",
+    "indications": [
+      "Asma",
+      "wheeze tertentu"
+    ],
+    "dose": "0.25–0.5 mg/dosis",
+    "frequency": "q12–24h",
+    "maxDose": "1 mg/hari*",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Regimen bergantung usia dan perangkat.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d40",
+    "name": "dexamethasone",
+    "class": "Kortikosteroid",
+    "indications": [
+      "Croup",
+      "edema",
+      "kondisi inflamasi"
+    ],
+    "dose": "0.15–0.6 mg/kg/dosis",
+    "frequency": "single/menurut indikasi",
+    "maxDose": "16 mg/dosis*",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Indikasi menentukan dosis.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d41",
+    "name": "prednisolone",
+    "class": "Kortikosteroid",
+    "indications": [
+      "Asma/eksaserbasi inflamasi"
+    ],
+    "dose": "1–2 mg/kg/hari",
+    "frequency": "q24h atau dibagi",
+    "maxDose": "60 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Durasi dan tapering sesuai indikasi.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d42",
+    "name": "cetirizine",
+    "class": "Antihistamin",
+    "indications": [
+      "Rinitis alergi",
+      "urtikaria"
+    ],
+    "dose": "2.5–10 mg/hari*",
+    "frequency": "q24h",
+    "maxDose": "10 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Dosis berdasarkan usia; renal adjustment bila berat.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d43",
+    "name": "loratadine",
+    "class": "Antihistamin",
+    "indications": [
+      "Rinitis alergi",
+      "urtikaria"
+    ],
+    "dose": "5–10 mg/hari*",
+    "frequency": "q24h",
+    "maxDose": "10 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Dosis berdasarkan usia.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d44",
+    "name": "chlorpheniramine",
+    "class": "Antihistamin",
+    "indications": [
+      "Alergi"
+    ],
+    "dose": "0.35 mg/kg/hari*",
+    "frequency": "dibagi 3–4 dosis",
+    "maxDose": "16 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Sedatif; dosis berbasis usia.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d45",
+    "name": "diazepam",
+    "class": "Benzodiazepin",
+    "indications": [
+      "Kejang akut",
+      "spasme"
+    ],
+    "dose": "0.2–0.5 mg/kg/dosis",
+    "frequency": "PRN/menurut protokol",
+    "maxDose": "10 mg/dosis",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Kejang akut memerlukan protokol dan monitoring napas.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d46",
+    "name": "midazolam",
+    "class": "Benzodiazepin",
+    "indications": [
+      "Kejang akut/sedasi"
+    ],
+    "dose": "0.1–0.2 mg/kg/dosis",
+    "frequency": "PRN/menurut protokol",
+    "maxDose": "10 mg/dosis",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Airway/respiratory monitoring wajib.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d47",
+    "name": "levetiracetam",
+    "class": "Antikejang",
+    "indications": [
+      "Epilepsi/kejang"
+    ],
+    "dose": "10 mg/kg/dosis awal",
+    "frequency": "q12h; titrasi",
+    "maxDose": "60 mg/kg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Renal adjustment diperlukan.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d48",
+    "name": "valproic acid",
+    "class": "Antikejang",
+    "indications": [
+      "Epilepsi"
+    ],
+    "dose": "10–15 mg/kg/hari awal",
+    "frequency": "dibagi 2–3 dosis",
+    "maxDose": "60 mg/kg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Perhatikan fungsi hati, trombosit, dan interaksi.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d49",
+    "name": "carbamazepine",
+    "class": "Antikejang",
+    "indications": [
+      "Epilepsi tertentu"
+    ],
+    "dose": "5 mg/kg/dosis awal",
+    "frequency": "q12h",
+    "maxDose": "35 mg/kg/hari*",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Banyak interaksi; titrasi dan monitoring.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d50",
+    "name": "oxcarbazepine",
+    "class": "Antikejang",
+    "indications": [
+      "Kejang fokal"
+    ],
+    "dose": "8–10 mg/kg/hari awal",
+    "frequency": "dibagi q12h",
+    "maxDose": "60 mg/kg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Mulai setengah dosis pada CrCl <30 mL/min menurut label.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d51",
+    "name": "furosemide",
+    "class": "Diuretik",
+    "indications": [
+      "Edema",
+      "gagal jantung"
+    ],
+    "dose": "1 mg/kg/dosis",
+    "frequency": "q6–12h",
+    "maxDose": "6 mg/kg/dosis",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Renal function, elektrolit, dan volume status perlu dipantau.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d52",
+    "name": "spironolactone",
+    "class": "Diuretik",
+    "indications": [
+      "Edema",
+      "gagal jantung"
+    ],
+    "dose": "1–3 mg/kg/hari",
+    "frequency": "q12–24h",
+    "maxDose": "200 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Hindari/kurangi pada gangguan ginjal dan hiperkalemia.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d53",
+    "name": "enalapril",
+    "class": "ACE inhibitor",
+    "indications": [
+      "Hipertensi",
+      "gagal jantung"
+    ],
+    "dose": "0.08 mg/kg/dosis awal",
+    "frequency": "q12–24h",
+    "maxDose": "0.6 mg/kg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Renal adjustment dan monitoring K/Cr.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d54",
+    "name": "captopril",
+    "class": "ACE inhibitor",
+    "indications": [
+      "Hipertensi",
+      "gagal jantung"
+    ],
+    "dose": "0.05–0.1 mg/kg/dosis awal",
+    "frequency": "q8h",
+    "maxDose": "6 mg/kg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Renal adjustment; monitor K/Cr.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d55",
+    "name": "amlodipine",
+    "class": "CCB",
+    "indications": [
+      "Hipertensi"
+    ],
+    "dose": "0.05–0.1 mg/kg/hari",
+    "frequency": "q24h",
+    "maxDose": "5 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Titrasi menurut usia dan respons.",
+    "sourceStatus": "Needs clinical validation"
+  },
+  {
+    "id": "d56",
+    "name": "hydrochlorothiazide",
+    "class": "Diuretik",
+    "indications": [
+      "Hipertensi",
+      "edema"
+    ],
+    "dose": "1–2 mg/kg/dosis",
+    "frequency": "q12–24h",
+    "maxDose": "100 mg/hari",
+    "renal": "Individualize/verify renal adjustment",
+    "note": "Efek berkurang pada GFR rendah; monitor elektrolit.",
+    "sourceStatus": "Needs clinical validation"
+  }
 ];
 
-function round(n: number, digits = 1) {
-  const p = 10 ** digits;
-  return Math.round(n * p) / p;
+function round(n:number, d=1) {
+  const p = 10 ** d;
+  return Math.round(n*p)/p;
+}
+
+function ageLabel(months:number) {
+  if (months < 24) return `${months} bulan`;
+  return `${round(months/12,1)} tahun`;
 }
 
 export default function Home() {
   const [weight, setWeight] = useState("18");
-  const [age, setAge] = useState("5");
-  const [drugId, setDrugId] = useState("paracetamol");
+  const [ageMonths, setAgeMonths] = useState("60");
+  const [drugId, setDrugId] = useState("d01");
+  const [indication, setIndication] = useState("");
+  const [renal, setRenal] = useState("Normal");
   const [concentration, setConcentration] = useState("160");
   const [showFormula, setShowFormula] = useState(false);
 
   const drug = DRUGS.find(d => d.id === drugId)!;
+  const indications = drug.indications;
+  const selectedIndication = indication || indications[0];
+
   const result = useMemo(() => {
     const kg = Number(weight);
-    const ageYears = Number(age);
     if (!kg || kg <= 0) return null;
-
-    const mgDose = kg * drug.doseMgKg;
-    const dailyCap = drug.maxMgKgDay ? kg * drug.maxMgKgDay : Infinity;
-    const mgDoseLimited = Math.min(mgDose, dailyCap);
-    const conc = Number(concentration);
-    const ml = conc > 0 ? (mgDoseLimited / conc) * 5 : null;
-
     return {
-      mgDose: round(mgDoseLimited),
-      ml: ml == null ? null : round(ml, 2),
-      dailyMax: Number.isFinite(dailyCap) ? round(dailyCap) : null,
-      ageWarning:
-        drug.minAgeMonths != null && ageYears * 12 < drug.minAgeMonths
-          ? `Perhatian: obat ini memiliki batas usia minimal sekitar ${drug.minAgeMonths} bulan pada database aplikasi.`
-          : null,
+      age: ageLabel(Number(ageMonths) || 0),
+      kg,
+      doseText: drug.dose,
+      maxDose: drug.maxDose,
+      renalText: renal === "Normal"
+        ? "Tidak ada penyesuaian otomatis diterapkan."
+        : `${renal}: aplikasi tidak mengubah dosis otomatis; verifikasi regimen renal spesifik obat pada referensi resmi.`,
     };
-  }, [weight, age, drug, concentration]);
+  }, [weight, ageMonths, drug, renal]);
 
-  function reset() {
-    setWeight("");
-    setAge("");
-    setDrugId("paracetamol");
-    setConcentration("160");
-    setShowFormula(false);
+  function prescription() {
+    if (!result) return "";
+    return `R/ ${drug.name}\nDosis: ${drug.dose}\nS: ${drug.frequency}\nIndikasi: ${selectedIndication}\nBB: ${result.kg} kg | Usia: ${result.age}\nCatatan renal: ${result.renalText}`;
+  }
+
+  async function copyRx() {
+    await navigator.clipboard.writeText(prescription());
+    alert("Format resep disalin.");
   }
 
   return (
@@ -133,95 +908,98 @@ export default function Home() {
           <div>
             <div className="eyebrow">CLINICAL DECISION SUPPORT</div>
             <h1>PediDose</h1>
-            <p>Simple pediatric dose calculator</p>
+            <p>50-drug pediatric dosing database • Vercel-ready</p>
           </div>
         </header>
 
         <section className="hero">
           <div>
-            <span className="pill">PEDIATRIC DOSING</span>
-            <h2>Hitung dosis anak<br />dengan cepat.</h2>
-            <p>Masukkan berat badan, pilih obat, lalu periksa dosis berbasis mg/kg dan konversi volume sediaan.</p>
+            <span className="pill">PEDIATRIC DRUG DATABASE</span>
+            <h2>Dosis anak,<br/>lebih terstruktur.</h2>
+            <p>Pilih obat → indikasi → masukkan BB/usia → cek renal → hasilkan format resep.</p>
           </div>
-          <div className="heroIcon">＋</div>
+          <div className="heroIcon">Rx</div>
         </section>
 
         <section className="grid">
           <div className="card inputCard">
             <div className="cardTitle"><span>01</span> Data pasien</div>
-
             <label>Berat badan
-              <div className="inputUnit"><input inputMode="decimal" value={weight} onChange={e => setWeight(e.target.value)} placeholder="18" /><b>kg</b></div>
+              <div className="inputUnit"><input inputMode="decimal" value={weight} onChange={e => setWeight(e.target.value)} /><b>kg</b></div>
             </label>
-
             <label>Usia
-              <div className="inputUnit"><input inputMode="decimal" value={age} onChange={e => setAge(e.target.value)} placeholder="5" /><b>tahun</b></div>
+              <div className="inputUnit"><input inputMode="numeric" value={ageMonths} onChange={e => setAgeMonths(e.target.value)} /><b>bulan</b></div>
             </label>
 
-            <div className="cardTitle second"><span>02</span> Obat</div>
-            <label>Pilih obat
+            <div className="cardTitle second"><span>02</span> Obat & indikasi</div>
+            <label>Obat
               <select value={drugId} onChange={e => {
-                const id = e.target.value;
-                setDrugId(id);
-                const d = DRUGS.find(x => x.id === id)!;
-                if (d.concentration) setConcentration(String(d.concentration));
+                setDrugId(e.target.value); setIndication("");
+                setConcentration(e.target.value === "d01" ? "160" : "");
               }}>
-                {DRUGS.map(d => <option key={d.id} value={d.id}>{d.name} — {d.indication}</option>)}
+                {DRUGS.map(d => <option key={d.id} value={d.id}>{d.name} — {d.class}</option>)}
+              </select>
+            </label>
+            <label>Indikasi
+              <select value={selectedIndication} onChange={e => setIndication(e.target.value)}>
+                {indications.map(x => <option key={x} value={x}>{x}</option>)}
               </select>
             </label>
 
-            <label>Konsentrasi sediaan
-              <div className="inputUnit"><input inputMode="decimal" value={concentration} onChange={e => setConcentration(e.target.value)} /><b>mg / 5 mL</b></div>
+            <div className="cardTitle second"><span>03</span> Fungsi ginjal</div>
+            <label>Status renal
+              <select value={renal} onChange={e => setRenal(e.target.value)}>
+                <option>Normal</option>
+                <option>eGFR 60–89</option>
+                <option>eGFR 30–59</option>
+                <option>eGFR 15–29</option>
+                <option>eGFR &lt;15 / dialysis</option>
+              </select>
             </label>
 
-            <button className="secondary" onClick={reset}>Reset</button>
+            <label>Konsentrasi sediaan (opsional)
+              <div className="inputUnit"><input inputMode="decimal" value={concentration} onChange={e => setConcentration(e.target.value)} placeholder="mis. 160" /><b>mg/5 mL</b></div>
+            </label>
           </div>
 
           <div className="card resultCard">
-            <div className="cardTitle"><span>03</span> Hasil perhitungan</div>
-            {!result ? (
-              <div className="empty">Masukkan berat badan untuk melihat hasil.</div>
-            ) : (
-              <>
-                <div className="drugName">{drug.name}</div>
-                <div className="doseBig">{result.mgDose}<small> mg / dosis</small></div>
-                {result.ml != null && (
-                  <div className="volume">
-                    <div><strong>{result.ml}</strong> mL</div>
-                    <span>per dosis</span>
-                  </div>
-                )}
-                <div className="details">
-                  <div><span>Dosis acuan</span><b>{drug.doseMgKg} mg/kg/dosis</b></div>
-                  <div><span>Frekuensi</span><b>{drug.frequency}</b></div>
-                  {result.dailyMax && <div><span>Maksimum harian</span><b>{result.dailyMax} mg/hari</b></div>}
-                  <div><span>Sediaan</span><b>{concentration} mg / 5 mL</b></div>
-                </div>
+            <div className="cardTitle"><span>04</span> Clinical dosing card</div>
+            {!result ? <div className="empty">Masukkan BB.</div> : <>
+              <div className="drugName">{drug.name}</div>
+              <div className="indication">{selectedIndication}</div>
 
-                {result.ageWarning && <div className="warning">{result.ageWarning}</div>}
-                {drug.note && <div className="note">{drug.note}</div>}
+              <div className="dosePanel">
+                <span>Dosis acuan</span>
+                <strong>{result.doseText}</strong>
+              </div>
 
-                <button className="formulaBtn" onClick={() => setShowFormula(!showFormula)}>
-                  {showFormula ? "Sembunyikan rumus" : "Lihat rumus perhitungan"} <span>↗</span>
-                </button>
-                {showFormula && (
-                  <div className="formula">
-                    <b>Rumus</b>
-                    <div>Dosis = berat badan × dosis rekomendasi</div>
-                    <div>{weight} kg × {drug.doseMgKg} mg/kg = <b>{result.mgDose} mg/dosis</b></div>
-                    <div>Volume = dosis ÷ konsentrasi × 5 mL</div>
-                    {result.ml != null && <div>{result.mgDose} ÷ {concentration} × 5 = <b>{result.ml} mL/dosis</b></div>}
-                  </div>
-                )}
-              </>
-            )}
+              <div className="details">
+                <div><span>Frekuensi</span><b>{drug.frequency}</b></div>
+                <div><span>Dosis maksimum</span><b>{drug.maxDose}</b></div>
+                <div><span>Renal</span><b>{result.renalText}</b></div>
+                <div><span>Catatan</span><b>{drug.note}</b></div>
+              </div>
+
+              <div className="rxBox">
+                <div className="rxHead"><b>FORMAT RESEP</b><button onClick={copyRx}>Salin</button></div>
+                <pre>{prescription()}</pre>
+              </div>
+
+              <button className="formulaBtn" onClick={() => setShowFormula(!showFormula)}>
+                {showFormula ? "Sembunyikan informasi database" : "Lihat status database"} <span>↗</span>
+              </button>
+              {showFormula && <div className="formula">
+                <b>Status sumber: {drug.sourceStatus}</b>
+                <div>Database ini dirancang sebagai struktur aplikasi dan wajib divalidasi terhadap label resmi, formularium rumah sakit, pedoman nasional, usia, indikasi, formulasi, dan kondisi pasien sebelum penggunaan klinis.</div>
+              </div>}
+            </>}
           </div>
         </section>
 
         <footer>
           <strong>⚠ Clinical safety notice</strong>
-          <p>PediDose adalah alat bantu perhitungan, bukan pengganti clinical judgment. Selalu verifikasi diagnosis, indikasi, usia, berat badan, formulasi, fungsi ginjal/hati, dosis maksimum, kontraindikasi, interaksi, dan guideline terbaru sebelum memberikan obat.</p>
-          <p className="tiny">Database contoh pada MVP ini harus divalidasi oleh dokter/farmasis dan disesuaikan dengan formularium serta pedoman lokal sebelum digunakan untuk pelayanan klinis.</p>
+          <p>PediDose adalah alat bantu, bukan pengganti clinical judgment. Jangan gunakan database ini sebagai satu-satunya dasar prescribing. Penyesuaian renal pediatrik tidak boleh ditebak dari tabel dewasa; bukti dan label spesifik anak dapat terbatas. FDA menekankan adanya kesenjangan data dosing pediatrik pada gangguan ginjal.</p>
+          <p className="tiny">Versi ini berisi 50 obat sebagai starter database. Untuk rilis klinis, setiap regimen harus memiliki sumber, tanggal verifikasi, populasi usia, indikasi, formulasi, renal/hepatic adjustment, max single dose, max daily dose, dan aturan rounding.</p>
         </footer>
       </div>
     </main>

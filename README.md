@@ -1,25 +1,29 @@
-# PediDose
+# PediDose — Pediatric Dose Calculator
 
-A Next.js pediatric dose calculator UI, ready for Vercel.
+Next.js 14 + TypeScript + CSS, ready for GitHub/Vercel.
+
+## Included
+- 50 pediatric medicines
+- Drug class
+- Multiple indications
+- Pediatric dose reference field
+- Frequency
+- Maximum dose field
+- Renal-status workflow
+- Automatic prescription-format text
+- Copy prescription button
+- Age and weight inputs
+- Clinical safety notice
+
+## Important
+This repository is a **starter clinical decision-support application**, not a clinically validated prescribing database.
+Every medication regimen must be reviewed against current official product labeling, national/local formularies and guidelines, pediatric references, formulation strength, age/weight restrictions, renal/hepatic function, contraindications, interactions, and indication-specific duration.
+
+For renal dosing, do not infer pediatric dosing simply from adult tables. FDA materials specifically discuss the evidence gaps and the need for pediatric-specific renal dosing approaches.
 
 ## Run locally
-
-```bash
 npm install
 npm run dev
-```
 
-Open http://localhost:3000.
-
-## Deploy to Vercel
-
-1. Upload this project to a GitHub repository.
-2. Import the repository into Vercel.
-3. Vercel detects Next.js automatically.
-4. Deploy.
-
-## Important clinical note
-
-The included drug table is an MVP/demo dataset. It must be reviewed and validated against current official pediatric references, local formularies, indications, age restrictions, renal/hepatic adjustment, maximum doses, and formulation-specific instructions before clinical use.
-
-This project intentionally presents itself as clinical decision support and does not replace clinician judgment.
+## Deploy
+Push this folder to GitHub, then import the repository into Vercel.
