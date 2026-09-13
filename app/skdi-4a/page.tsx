@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { SKDI_4A_DISEASES, type Skdi4aDisease } from "../skdi4a-data";
+import { SKDI_4A_DISEASES, type SkdiDisease } from "../skdi4a-data";
 
-const sections: Array<[keyof Pick<Skdi4aDisease, "diagnosis" | "workup" | "differential" | "management" | "followUp" | "referral">, string, string]> = [
+const sections: Array<[keyof Pick<SkdiDisease, "diagnosis" | "workup" | "differential" | "management" | "followUp" | "referral">, string, string]> = [
   ["diagnosis", "Diagnosis", "01"],
   ["workup", "Pemeriksaan penunjang", "02"],
   ["differential", "Diagnosis banding (DDx)", "03"],

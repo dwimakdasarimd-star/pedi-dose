@@ -2,7 +2,7 @@ export type Skdi4aDisease = {
   id: string; number: number; name: string; system: string; keywords: string[];
   diagnosis: string; workup: string; differential: string; management: string; followUp: string; referral: string;
   sources: Array<{name: string; url: string}>;
-  contentStatus: "Clinical reference — guideline-based draft";
+  contentStatus: "Clinical reference — guideline-based draft" | "Scope entry — KKI 2026; clinical details require disease-specific guideline verification";
 };
 
 const names = [

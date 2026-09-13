@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { SKDI_4A_DISEASES } from "./skdi4a-data";
 
 type Drug = {
@@ -1047,7 +1047,7 @@ function formatNumber(value: number, digits = 2) {
 
 function ClinicalReferenceDashboard({ onOpen }: { onOpen: () => void }) {
   const systems = new Set(SKDI_4A_DISEASES.map(d => d.system));
-  const ready = SKDI_4A_DISEASES.filter(d => d.contentStatus && d.contentStatus !== "Framework").length;
+  const ready = SKDI_4A_DISEASES.filter(d => d.contentStatus === "Clinical reference — guideline-based draft").length;
   return <section className="card clinicalReferenceHero">
     <div className="clinicalReferenceCopy">
       <div className="cardTitle"><span>07</span> CLINICAL REFERENCE</div>
@@ -1164,7 +1164,7 @@ function MaintenanceCalculator() {
 function InputUnit({ label, value, onChange, unit, placeholder }: { label: string; value: string; onChange: (v: string) => void; unit: string; placeholder?: string }) { return <label>{label}<div className="inputUnit"><input inputMode="decimal" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} /><b>{unit}</b></div></label>; }
 function SelectField({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[][] }) { return <label>{label}<select value={value} onChange={e => onChange(e.target.value)}>{options.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label>; }
 function Formula({ text }: { text: string }) { return <div className="formula"><b>Formula</b><div>{text}</div></div>; }
-function CalculatorLayout({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) { return <><div className="calcHeading"><div><div className="cardTitle"><span>CALCULATOR</span></div><h3>{title}</h3><p>{subtitle}</p></div><div className="calcBadge">CHECK UNITS<br/>BEFORE USE</div></div>{children}<div className="calcSafety"><b>Clinical safety:</b> This calculator performs unit conversion and arithmetic. It does not select a drug, indication, dose, concentration, target, or treatment protocol. Verify inputs, preparation details, pump settings, institutional protocols, and current references before clinical use.</div></>; }
+function CalculatorLayout({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) { return <><div className="calcHeading"><div><div className="cardTitle"><span>CALCULATOR</span></div><h3>{title}</h3><p>{subtitle}</p></div><div className="calcBadge">CHECK UNITS<br/>BEFORE USE</div></div>{children}<div className="calcSafety"><b>Clinical safety:</b> This calculator performs unit conversion and arithmetic. It does not select a drug, indication, dose, concentration, target, or treatment protocol. Verify inputs, preparation details, pump settings, institutional protocols, and current references before clinical use.</div></>; }
 
 
 function Skdi4aDatabase() {
