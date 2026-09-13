@@ -41,3 +41,14 @@ npm run build
 
 ## Deploy
 Push this folder to GitHub, then import the repository into Vercel.
+
+## Calculator suite
+The interface now includes separate calculator sections for:
+- Pediatric dosing (existing 56-drug workflow)
+- Infusion rate (mL/hr or gtt/min)
+- Dose rate ↔ pump rate (weight-based dose to pump rate)
+- Infusion concentration (amount/final volume)
+- Weight-based fluid volume (mL/kg arithmetic)
+- Pediatric maintenance fluids (4–2–1 and 100–50–20 calculations)
+
+The infusion calculators are intentionally generic: they calculate units and arithmetic but do not prescribe a drug, target dose, concentration, or treatment protocol. Verify preparation, units, pump programming, institutional policy, and current clinical references before use.

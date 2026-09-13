@@ -1031,6 +1031,121 @@ function makePrescription(params: {
   return `${header}\n\n${body}\n\nPro: ${patientName || "[Nama pasien]"}\nUmur: ${age || "[usia]"}; BB: ${weight || "[BB]"} kg${diagnosis ? `\nDiagnosis: ${diagnosis}` : ""}`;
 }
 
+
+type CalculatorKey = "dosing" | "infusion-rate" | "dose-rate" | "concentration" | "fluid-bolus" | "maintenance";
+
+function num(value: string) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function formatNumber(value: number, digits = 2) {
+  if (!Number.isFinite(value)) return "—";
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: digits }).format(value);
+}
+
+function CalculatorNav({ active, onChange }: { active: CalculatorKey; onChange: (key: CalculatorKey) => void }) {
+  const items: { key: CalculatorKey; number: string; title: string; desc: string }[] = [
+    { key: "dosing", number: "01", title: "Pediatric dosing", desc: "BB, usia, obat & resep" },
+    { key: "infusion-rate", number: "02", title: "Infusion rate", desc: "Volume, waktu & mL/hr" },
+    { key: "dose-rate", number: "03", title: "Dose ↔ pump rate", desc: "mcg/kg/min, mg/hr & mL/hr" },
+    { key: "concentration", number: "04", title: "Infusion concentration", desc: "Amount, volume & strength" },
+    { key: "fluid-bolus", number: "05", title: "Fluid volume", desc: "mL/kg & total volume" },
+    { key: "maintenance", number: "06", title: "Maintenance fluids", desc: "4–2–1 / 100–50–20" },
+  ];
+  return <nav className="calcNav" aria-label="Medical calculators">
+    {items.map(item => <button key={item.key} className={`calcNavItem ${active === item.key ? "active" : ""}`} onClick={() => onChange(item.key)}>
+      <span className="calcNavNumber">{item.number}</span><span><b>{item.title}</b><small>{item.desc}</small></span>
+    </button>)}
+  </nav>;
+}
+
+function ResultMetric({ label, value, unit }: { label: string; value: string; unit?: string }) {
+  return <div className="metric"><span>{label}</span><strong>{value} {unit && <small>{unit}</small>}</strong></div>;
+}
+
+function InfusionRateCalculator() {
+  const [volume, setVolume] = useState("100");
+  const [time, setTime] = useState("1");
+  const [timeUnit, setTimeUnit] = useState("hours");
+  const [dropFactor, setDropFactor] = useState("20");
+  const [mode, setMode] = useState("pump");
+  const hours = num(time) * (timeUnit === "minutes" ? 1 / 60 : 1);
+  const rate = hours > 0 ? num(volume) / hours : 0;
+  const drops = hours > 0 ? num(volume) * num(dropFactor) / (hours * 60) : 0;
+  return <CalculatorLayout title="Infusion rate calculator" subtitle="Convert infused volume and time into an hourly pump rate or gravity drip rate.">
+    <div className="calcGrid">
+      <div className="calcInputs">
+        <InputUnit label="Volume to infuse" value={volume} onChange={setVolume} unit="mL" />
+        <div className="twoCol"><InputUnit label="Infusion time" value={time} onChange={setTime} unit={timeUnit === "hours" ? "hr" : "min"} /><SelectField label="Time unit" value={timeUnit} onChange={setTimeUnit} options={[["hours","hours"],["minutes","minutes"]]} /></div>
+        <SelectField label="Output" value={mode} onChange={setMode} options={[["pump","Pump rate (mL/hr)"],["gravity","Gravity rate (gtt/min)"]]} />
+        {mode === "gravity" && <InputUnit label="Drop factor" value={dropFactor} onChange={setDropFactor} unit="gtt/mL" />}
+      </div>
+      <div className="calcResult">
+        <div className="resultKicker">CALCULATED RATE</div>
+        <div className="resultHero">{mode === "pump" ? formatNumber(rate) : formatNumber(drops)} <small>{mode === "pump" ? "mL/hr" : "gtt/min"}</small></div>
+        <div className="metricList"><ResultMetric label="Volume" value={formatNumber(num(volume))} unit="mL" /><ResultMetric label="Time" value={formatNumber(hours, 3)} unit="hr" />{mode === "pump" && <ResultMetric label="Equivalent" value={formatNumber(rate / 60, 3)} unit="mL/min" />}</div>
+        <Formula text={mode === "pump" ? "Rate = volume ÷ time" : "Drops/min = volume (mL) × drop factor (gtt/mL) ÷ time (min)"} />
+      </div>
+    </div>
+  </CalculatorLayout>;
+}
+
+function DoseRateCalculator() {
+  const [dose, setDose] = useState("5");
+  const [doseUnit, setDoseUnit] = useState("mcg/kg/min");
+  const [weight, setWeight] = useState("18");
+  const [amount, setAmount] = useState("400");
+  const [amountUnit, setAmountUnit] = useState("mg");
+  const [volume, setVolume] = useState("250");
+  const [output, setOutput] = useState("mL/hr");
+  const weightKg = num(weight), d = num(dose), amt = num(amount), vol = num(volume);
+  const concentrationMgMl = vol > 0 ? (amountUnit === "mcg" ? amt / 1000 : amt) / vol : 0;
+  const doseMgHr = doseUnit === "mcg/kg/min" ? d * weightKg * 60 / 1000 : doseUnit === "mg/kg/hr" ? d * weightKg : d;
+  const pump = concentrationMgMl > 0 ? doseMgHr / concentrationMgMl : 0;
+  const outputDose = output === "mL/hr" ? pump : output === "mg/hr" ? doseMgHr : doseMgHr * 1000;
+  const outputUnit = output === "mL/hr" ? "mL/hr" : output === "mg/hr" ? "mg/hr" : "mcg/hr";
+  return <CalculatorLayout title="Dose rate ↔ pump rate" subtitle="Translate a weight-based infusion dose into the corresponding pump rate from a prepared concentration.">
+    <div className="calcGrid"><div className="calcInputs">
+      <div className="twoCol"><InputUnit label="Dose" value={dose} onChange={setDose} unit={doseUnit === "mcg/kg/min" ? "mcg/kg/min" : "mg/kg/hr"} /><SelectField label="Dose unit" value={doseUnit} onChange={setDoseUnit} options={[["mcg/kg/min","mcg/kg/min"],["mg/kg/hr","mg/kg/hr"],["mg/hr","mg/hr"]]} /></div>
+      <InputUnit label="Patient weight" value={weight} onChange={setWeight} unit="kg" />
+      <div className="twoCol"><InputUnit label="Drug amount in bag/syringe" value={amount} onChange={setAmount} unit={amountUnit} /><SelectField label="Amount unit" value={amountUnit} onChange={setAmountUnit} options={[["mg","mg"],["mcg","mcg"]]} /></div>
+      <InputUnit label="Final volume" value={volume} onChange={setVolume} unit="mL" />
+      <SelectField label="Show result as" value={output} onChange={setOutput} options={[["mL/hr","Pump rate (mL/hr)"],["mg/hr","Drug delivery (mg/hr)"],["mcg/hr","Drug delivery (mcg/hr)"]]} />
+    </div><div className="calcResult"><div className="resultKicker">CALCULATED OUTPUT</div><div className="resultHero">{formatNumber(outputDose, 3)} <small>{outputUnit}</small></div>
+      <div className="metricList"><ResultMetric label="Prepared concentration" value={formatNumber(concentrationMgMl, 4)} unit="mg/mL" /><ResultMetric label="Dose delivered" value={formatNumber(doseMgHr, 3)} unit="mg/hr" /><ResultMetric label="Weight" value={formatNumber(weightKg)} unit="kg" /></div>
+      <Formula text="Pump rate = required drug delivery ÷ concentration. For mcg/kg/min, first convert to mg/hr." />
+    </div></div></CalculatorLayout>;
+}
+
+function ConcentrationCalculator() {
+  const [amount, setAmount] = useState("500"); const [amountUnit, setAmountUnit] = useState("mg"); const [volume, setVolume] = useState("100"); const [volumeUnit, setVolumeUnit] = useState("mL");
+  const mg = num(amount) * (amountUnit === "g" ? 1000 : amountUnit === "mcg" ? 0.001 : 1); const ml = num(volume) * (volumeUnit === "L" ? 1000 : 1); const mgMl = ml > 0 ? mg / ml : 0;
+  return <CalculatorLayout title="Infusion concentration" subtitle="Calculate concentration from the amount of drug and the final solution volume."><div className="calcGrid"><div className="calcInputs">
+    <div className="twoCol"><InputUnit label="Drug amount" value={amount} onChange={setAmount} unit={amountUnit} /><SelectField label="Amount unit" value={amountUnit} onChange={setAmountUnit} options={[["mg","mg"],["g","g"],["mcg","mcg"]]} /></div>
+    <div className="twoCol"><InputUnit label="Final volume" value={volume} onChange={setVolume} unit={volumeUnit} /><SelectField label="Volume unit" value={volumeUnit} onChange={setVolumeUnit} options={[["mL","mL"],["L","L"]]} /></div>
+  </div><div className="calcResult"><div className="resultKicker">CONCENTRATION</div><div className="resultHero">{formatNumber(mgMl, 4)} <small>mg/mL</small></div><div className="metricList"><ResultMetric label="Equivalent" value={formatNumber(mgMl * 1000, 2)} unit="mg/L" /><ResultMetric label="Amount" value={formatNumber(mg)} unit="mg" /><ResultMetric label="Final volume" value={formatNumber(ml)} unit="mL" /></div><Formula text="Concentration = total drug amount ÷ final volume." /></div></div></CalculatorLayout>;
+}
+
+function FluidBolusCalculator() {
+  const [weight, setWeight] = useState("18"); const [volumePerKg, setVolumePerKg] = useState("10"); const [maximum, setMaximum] = useState("");
+  const total = num(weight) * num(volumePerKg); const max = num(maximum); const capped = max > 0 ? Math.min(total, max) : total;
+  return <CalculatorLayout title="Weight-based fluid volume" subtitle="Calculate a volume from a selected mL/kg factor. This tool performs arithmetic only; choose the clinical factor from your protocol."><div className="calcGrid"><div className="calcInputs">
+    <InputUnit label="Patient weight" value={weight} onChange={setWeight} unit="kg" /><InputUnit label="Selected volume factor" value={volumePerKg} onChange={setVolumePerKg} unit="mL/kg" /><InputUnit label="Optional maximum volume" value={maximum} onChange={setMaximum} unit="mL" placeholder="leave blank" />
+    <div className="rxHint">Enter the mL/kg factor specified by your local protocol. No bolus dose is hard-coded into this calculator.</div>
+  </div><div className="calcResult"><div className="resultKicker">CALCULATED VOLUME</div><div className="resultHero">{formatNumber(capped)} <small>mL</small></div><div className="metricList"><ResultMetric label="Uncapped volume" value={formatNumber(total)} unit="mL" /><ResultMetric label="Weight" value={formatNumber(num(weight))} unit="kg" /><ResultMetric label="Factor" value={formatNumber(num(volumePerKg))} unit="mL/kg" /></div><Formula text="Total volume = body weight × selected volume factor." /></div></div></CalculatorLayout>;
+}
+
+function MaintenanceCalculator() {
+  const [weight, setWeight] = useState("18"); const kg = num(weight); const hourly = kg <= 10 ? kg * 4 : kg <= 20 ? 40 + (kg - 10) * 2 : 60 + (kg - 20); const daily = kg <= 10 ? kg * 100 : kg <= 20 ? 1000 + (kg - 10) * 50 : 1500 + (kg - 20) * 20;
+  return <CalculatorLayout title="Maintenance fluid calculator" subtitle="Pediatric maintenance arithmetic using the 4–2–1 hourly rule and 100–50–20 daily rule."><div className="calcGrid"><div className="calcInputs"><InputUnit label="Patient weight" value={weight} onChange={setWeight} unit="kg" /><div className="rxHint"><b>Hourly rule:</b> 4 mL/kg/hr for first 10 kg, 2 mL/kg/hr for next 10 kg, then 1 mL/kg/hr thereafter.</div><div className="rxHint"><b>Daily rule:</b> 100 mL/kg/day for first 10 kg, 50 mL/kg/day for next 10 kg, then 20 mL/kg/day thereafter.</div></div><div className="calcResult"><div className="resultKicker">MAINTENANCE ESTIMATE</div><div className="resultHero">{formatNumber(hourly, 2)} <small>mL/hr</small></div><div className="metricList"><ResultMetric label="Daily equivalent" value={formatNumber(daily)} unit="mL/day" /><ResultMetric label="Weight" value={formatNumber(kg)} unit="kg" /><ResultMetric label="Hourly × 24" value={formatNumber(hourly * 24)} unit="mL/day" /></div><Formula text="4–2–1 hourly rule and 100–50–20 daily rule are shown as calculation methods, not fluid prescribing recommendations." /></div></div></CalculatorLayout>;
+}
+
+function InputUnit({ label, value, onChange, unit, placeholder }: { label: string; value: string; onChange: (v: string) => void; unit: string; placeholder?: string }) { return <label>{label}<div className="inputUnit"><input inputMode="decimal" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} /><b>{unit}</b></div></label>; }
+function SelectField({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[][] }) { return <label>{label}<select value={value} onChange={e => onChange(e.target.value)}>{options.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label>; }
+function Formula({ text }: { text: string }) { return <div className="formula"><b>Formula</b><div>{text}</div></div>; }
+function CalculatorLayout({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) { return <><div className="calcHeading"><div><div className="cardTitle"><span>CALCULATOR</span></div><h3>{title}</h3><p>{subtitle}</p></div><div className="calcBadge">CHECK UNITS<br/>BEFORE USE</div></div>{children}<div className="calcSafety"><b>Clinical safety:</b> This calculator performs unit conversion and arithmetic. It does not select a drug, indication, dose, concentration, target, or treatment protocol. Verify inputs, preparation details, pump settings, institutional protocols, and current references before clinical use.</div></>; }
+
 const BG_ILLUSTRATION = `
 <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -1087,6 +1202,7 @@ export default function Home() {
   const [renal, setRenal] = useState("Normal");
   const [concentration, setConcentration] = useState("160");
   const [showFormula, setShowFormula] = useState(false);
+  const [activeCalculator, setActiveCalculator] = useState<CalculatorKey>("dosing");
 
   // Prescription fields based on the uploaded prescription-writing guide.
   const [patientName, setPatientName] = useState("");
@@ -1178,14 +1294,16 @@ export default function Home() {
 
         <section className="hero">
           <div>
-            <span className="pill">PEDIATRIC DRUG DATABASE</span>
-            <h2>Dosis anak,<br/>lebih terstruktur.</h2>
-            <p>Pilih obat → indikasi → masukkan BB/usia → cek renal → hasilkan format resep.</p>
+            <span className="pill">CLINICAL CALCULATOR SUITE</span>
+            <h2>Medical calculators,<br/>lebih terstruktur.</h2>
+            <p>Pilih kalkulator dari panel di bawah. Setiap calculator memiliki input, output, formula, dan safety notice yang terpisah.</p>
           </div>
-          <div className="heroIcon">Rx</div>
+          <div className="heroIcon">∑</div>
         </section>
 
-        <section className="grid">
+        <CalculatorNav active={activeCalculator} onChange={setActiveCalculator} />
+
+        {activeCalculator === "dosing" && <section className="grid">
           <div className="card inputCard">
             <div className="cardTitle"><span>01</span> Data pasien</div>
             <label>Berat badan
@@ -1335,7 +1453,12 @@ Sacc. lactis q.s.`} rows={5} />
               </div>}
             </>}
           </div>
-        </section>
+        </section>}
+        {activeCalculator === "infusion-rate" && <section className="card calculatorCard"><InfusionRateCalculator /></section>}
+        {activeCalculator === "dose-rate" && <section className="card calculatorCard"><DoseRateCalculator /></section>}
+        {activeCalculator === "concentration" && <section className="card calculatorCard"><ConcentrationCalculator /></section>}
+        {activeCalculator === "fluid-bolus" && <section className="card calculatorCard"><FluidBolusCalculator /></section>}
+        {activeCalculator === "maintenance" && <section className="card calculatorCard"><MaintenanceCalculator /></section>}
 
         <footer>
           <strong>⚠ Clinical safety notice</strong>
