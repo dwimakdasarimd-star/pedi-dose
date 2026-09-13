@@ -27,3 +27,16 @@ npm run dev
 
 ## Deploy
 Push this folder to GitHub, then import the repository into Vercel.
+
+
+## Prescription-writing module
+The app now includes a prescription formatter aligned to the uploaded FK UNS prescription skills guide:
+- patient name, age and weight
+- prescriber name/SIP and date
+- diagnosis/indication
+- drug name, dose, dosage form, route, frequency, duration and quantity
+- Latin or Indonesian signa
+- ready-made medicine and pulveres/racikan output
+- copy-ready prescription text
+
+The guide emphasizes rational prescribing, correct drug/dose/formulation/patient, and inclusion of age/weight for pediatric patients. The app is a training/decision-support tool and does not replace current official labeling or local formularies.

@@ -13,6 +13,8 @@ type Drug = {
   renal: string;
   note: string;
   sourceStatus: string;
+  defaultForm?: string;
+  defaultRoute?: string;
 };
 
 const DRUGS: Drug[] = [
@@ -853,6 +855,86 @@ const DRUGS: Drug[] = [
   }
 ];
 
+const PRESCRIPTION_FORMS = [
+  { value: "obat-jadi", label: "Obat jadi" },
+  { value: "racikan-pulveres", label: "Racikan pulveres" },
+  { value: "sirup-suspensi", label: "Sirup / suspensi" },
+  { value: "tablet-kapsul", label: "Tablet / kapsul" },
+  { value: "topikal", label: "Krim / salep / topikal" },
+  { value: "tetes", label: "Tetes" },
+  { value: "inhalasi-nebulisasi", label: "Inhalasi / nebulisasi" },
+];
+
+const ROUTES = ["PO", "IV", "IM", "SC", "INH", "NEB", "TOP", "OPHT", "OTIC", "NASAL", "RECTAL"];
+
+function latinSigna(freq: string) {
+  const f = freq.toLowerCase();
+  if (f.includes("q24")) return "1 dd";
+  if (f.includes("q12")) return "2 dd";
+  if (f.includes("q8")) return "3 dd";
+  if (f.includes("q6")) return "4 dd";
+  if (f.includes("q4")) return "6 dd";
+  if (f.includes("q6–8") || f.includes("q6-8")) return "3–4 dd";
+  if (f.includes("q8–12") || f.includes("q8-12")) return "2–3 dd";
+  if (f.includes("q12–24") || f.includes("q12-24")) return "1–2 dd";
+  return freq;
+}
+
+function makePrescription(params: {
+  patientName: string;
+  age: string;
+  weight: string;
+  doctor: string;
+  sip: string;
+  date: string;
+  diagnosis: string;
+  drug: Drug;
+  dosePerDose: string;
+  frequency: string;
+  route: string;
+  form: string;
+  duration: string;
+  quantity: string;
+  concentration: string;
+  signaLanguage: string;
+  compounded: boolean;
+}) {
+  const {
+    patientName, age, weight, doctor, sip, date, diagnosis, drug,
+    dosePerDose, frequency, route, form, duration, quantity, concentration,
+    signaLanguage, compounded
+  } = params;
+
+  const dose = dosePerDose.trim() || drug.dose;
+  const qty = quantity.trim() || "sesuai kebutuhan";
+  const conc = concentration.trim() ? ` ${concentration.trim()} mg/5 mL` : "";
+  const signa = signaLanguage === "Latin"
+    ? `${latinSigna(frequency)} ${route === "PO" ? "po" : route.toLowerCase()}`
+    : `${frequency} melalui ${route}`;
+
+  let body = "";
+  if (compounded) {
+    body = `R/ ${drug.name} ${dose}
+M.f. pulv. dtd No. ${qty}.
+S. ${signa}${duration ? ` selama ${duration}` : ""}.`;
+  } else {
+    body = `R/ ${drug.name}${conc} ${form}
+No. ${qty}.
+S. ${signa}${duration ? ` selama ${duration}` : ""}.`;
+  }
+
+  return `${doctor ? doctor : "[Nama dokter]"}${sip ? `
+SIP: ${sip}` : ""}
+${date ? `
+${date}` : ""}
+
+${body}
+
+-------------------------------- z
+Pro: ${patientName || "[Nama pasien]"} (${age || "[usia]"}; BB ${weight || "[BB]"} kg)${diagnosis ? `
+Diagnosis: ${diagnosis}` : ""}`;
+}
+
 function round(n:number, d=1) {
   const p = 10 ** d;
   return Math.round(n*p)/p;
@@ -871,6 +953,20 @@ export default function Home() {
   const [renal, setRenal] = useState("Normal");
   const [concentration, setConcentration] = useState("160");
   const [showFormula, setShowFormula] = useState(false);
+
+  // Prescription fields based on the uploaded prescription-writing guide.
+  const [patientName, setPatientName] = useState("");
+  const [doctorName, setDoctorName] = useState("");
+  const [sip, setSip] = useState("");
+  const [diagnosis, setDiagnosis] = useState("");
+  const [rxDate, setRxDate] = useState(new Date().toISOString().slice(0, 10));
+  const [rxForm, setRxForm] = useState("obat-jadi");
+  const [route, setRoute] = useState("PO");
+  const [dosePerDose, setDosePerDose] = useState("");
+  const [rxFrequency, setRxFrequency] = useState("");
+  const [duration, setDuration] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [signaLanguage, setSignaLanguage] = useState("Latin");
 
   const drug = DRUGS.find(d => d.id === drugId)!;
   const indications = drug.indications;
@@ -892,7 +988,26 @@ export default function Home() {
 
   function prescription() {
     if (!result) return "";
-    return `R/ ${drug.name}\nDosis: ${drug.dose}\nS: ${drug.frequency}\nIndikasi: ${selectedIndication}\nBB: ${result.kg} kg | Usia: ${result.age}\nCatatan renal: ${result.renalText}`;
+    const compounded = rxForm === "racikan-pulveres";
+    return makePrescription({
+      patientName,
+      age: result.age,
+      weight: String(result.kg),
+      doctor: doctorName,
+      sip,
+      date: rxDate,
+      diagnosis: diagnosis || selectedIndication,
+      drug,
+      dosePerDose,
+      frequency: rxFrequency || drug.frequency,
+      route,
+      form: PRESCRIPTION_FORMS.find(x => x.value === rxForm)?.label || "Obat jadi",
+      duration,
+      quantity,
+      concentration,
+      signaLanguage,
+      compounded,
+    });
   }
 
   async function copyRx() {
@@ -981,7 +1096,58 @@ export default function Home() {
               </div>
 
               <div className="rxBox">
-                <div className="rxHead"><b>FORMAT RESEP</b><button onClick={copyRx}>Salin</button></div>
+                <div className="rxHead"><b>FORMAT RESEP OTOMATIS</b><button onClick={copyRx}>Salin</button></div>
+
+                <div className="rxGrid">
+                  <label>Nama pasien
+                    <input value={patientName} onChange={e => setPatientName(e.target.value)} placeholder="Nama anak" />
+                  </label>
+                  <label>Diagnosis
+                    <input value={diagnosis} onChange={e => setDiagnosis(e.target.value)} placeholder={selectedIndication} />
+                  </label>
+                  <label>Nama dokter
+                    <input value={doctorName} onChange={e => setDoctorName(e.target.value)} placeholder="Nama dokter" />
+                  </label>
+                  <label>SIP
+                    <input value={sip} onChange={e => setSip(e.target.value)} placeholder="Nomor SIP" />
+                  </label>
+                  <label>Tanggal
+                    <input type="date" value={rxDate} onChange={e => setRxDate(e.target.value)} />
+                  </label>
+                  <label>Bentuk sediaan
+                    <select value={rxForm} onChange={e => setRxForm(e.target.value)}>
+                      {PRESCRIPTION_FORMS.map(x => <option key={x.value} value={x.value}>{x.label}</option>)}
+                    </select>
+                  </label>
+                  <label>Rute
+                    <select value={route} onChange={e => setRoute(e.target.value)}>
+                      {ROUTES.map(x => <option key={x} value={x}>{x}</option>)}
+                    </select>
+                  </label>
+                  <label>Dosis per kali <span className="muted">(opsional)</span>
+                    <input value={dosePerDose} onChange={e => setDosePerDose(e.target.value)} placeholder={drug.dose} />
+                  </label>
+                  <label>Frekuensi <span className="muted">(opsional)</span>
+                    <input value={rxFrequency} onChange={e => setRxFrequency(e.target.value)} placeholder={drug.frequency} />
+                  </label>
+                  <label>Durasi
+                    <input value={duration} onChange={e => setDuration(e.target.value)} placeholder="mis. 5 hari" />
+                  </label>
+                  <label>Jumlah
+                    <input value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="mis. No. I / No. X" />
+                  </label>
+                  <label>Gaya signa
+                    <select value={signaLanguage} onChange={e => setSignaLanguage(e.target.value)}>
+                      <option>Latin</option>
+                      <option>Bahasa Indonesia</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div className="rxHint">
+                  <b>Prinsip resep anak:</b> nama obat + dosis + bentuk sediaan + signa + jumlah, serta identitas pasien dengan usia dan BB. Setiap R/ memiliki signa; jika lebih dari satu R/, masing-masing diberi signa dan paraf.
+                </div>
+
                 <pre>{prescription()}</pre>
               </div>
 
@@ -999,7 +1165,7 @@ export default function Home() {
         <footer>
           <strong>⚠ Clinical safety notice</strong>
           <p>PediDose adalah alat bantu, bukan pengganti clinical judgment. Jangan gunakan database ini sebagai satu-satunya dasar prescribing. Penyesuaian renal pediatrik tidak boleh ditebak dari tabel dewasa; bukti dan label spesifik anak dapat terbatas. FDA menekankan adanya kesenjangan data dosing pediatrik pada gangguan ginjal.</p>
-          <p className="tiny">Versi ini berisi 50 obat sebagai starter database. Untuk rilis klinis, setiap regimen harus memiliki sumber, tanggal verifikasi, populasi usia, indikasi, formulasi, renal/hepatic adjustment, max single dose, max daily dose, dan aturan rounding.</p>
+          <p className="tiny">Versi ini berisi 56 obat sebagai starter database. Struktur resep mengikuti pedoman penulisan resep yang diunggah: R/, nama obat/dosis, bentuk sediaan, signa, jumlah, serta Pro dengan usia/BB anak. Untuk rilis klinis, setiap regimen tetap harus memiliki sumber, tanggal verifikasi, populasi usia, indikasi, formulasi, renal/hepatic adjustment, max single dose, max daily dose, dan aturan rounding.</p>
         </footer>
       </div>
     </main>
