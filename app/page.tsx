@@ -1051,9 +1051,9 @@ function ClinicalReferenceDashboard({ onOpen }: { onOpen: () => void }) {
   return <section className="card clinicalReferenceHero">
     <div className="clinicalReferenceCopy">
       <div className="cardTitle"><span>07</span> CLINICAL REFERENCE</div>
-      <h3>Database 144 penyakit SKDI 4A</h3>
+      <h3>Clinical Disease Database — KKI 2026</h3>
       <p>Clinical reference terintegrasi untuk membuka diagnosis, pemeriksaan yang diindikasikan, diagnosis banding, algoritme tatalaksana, follow-up, red flags, dan guideline setiap penyakit.</p>
-      <button className="primaryCta" onClick={onOpen}>Buka database 144 penyakit <span>→</span></button>
+      <button className="primaryCta" onClick={onOpen}>Buka clinical disease database <span>→</span></button>
     </div>
     <div className="clinicalReferenceStats">
       <div><strong>{SKDI_4A_DISEASES.length}</strong><span>penyakit</span></div>
@@ -1356,7 +1356,7 @@ export default function Home() {
           <div>
             <div className="eyebrow">CLINICAL DECISION SUPPORT</div>
             <h1>PediDose</h1>
-            <p>56-drug pediatric dosing • 144-disease clinical reference • Vercel-ready</p>
+            <p>56-drug pediatric dosing • KKI 2026 clinical disease reference • Vercel-ready</p>
           </div>
         </header>
 
